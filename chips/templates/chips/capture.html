@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Ler chip — {{ lote.nome }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a href="{% url 'lotes:review' lote.id %}" class="text-decoration-none small">&larr; Revisão do lote</a>
+        <h1 class="h4 mb-0">{{ lote.nome }}</h1>
+    </div>
+    <span class="badge text-bg-primary fs-6">{{ lote.quantidade }} lido(s)</span>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body text-center">
+        <form method="post" enctype="multipart/form-data" id="captureForm">
+            {% csrf_token %}
+            <img id="preview" class="capture-preview mb-3" alt="Pré-visualização do chip"
+                 style="display:none;">
+            <div id="placeholder" class="capture-preview mb-3 d-flex align-items-center justify-content-center text-muted">
+                Toque em “Tirar foto do chip”
+            </div>
+
+            <input type="file" name="imagem" id="imagem" accept="image/*" capture="environment"
+                   class="d-none" required>
+
+            <div class="d-grid gap-2">
+                <label for="imagem" class="btn btn-success btn-capture">📷 Tirar foto do chip</label>
+                <button type="submit" class="btn btn-primary btn-capture" id="btnLer" disabled>
+                    Ler ICCID
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-grid mb-4">
+    <a href="{% url 'lotes:review' lote.id %}" class="btn btn-outline-secondary">Concluir e revisar lote</a>
+</div>
+
+{% if chips %}
+<h2 class="h6 text-muted">Últimas leituras</h2>
+<ul class="list-group">
+    {% for chip in chips %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span class="iccid">#{{ chip.sequencia }} — {{ chip.iccid|default:"(erro)" }}</span>
+        {% if chip.status_leitura == 'sucesso' %}
+            <span class="badge text-bg-success">ok</span>
+        {% else %}
+            <span class="badge text-bg-danger">erro</span>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const input = document.getElementById('imagem');
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+    const btnLer = document.getElementById('btnLer');
+
+    input.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+        if (!file) return;
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        btnLer.disabled = false;
+    });
+</script>
+{% endblock %}

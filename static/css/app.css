@@ -1,0 +1,37 @@
+/* ChipCut — estilos do MVP */
+
+.iccid {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.5px;
+}
+
+.chip-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+/* Tela de captura mobile */
+.capture-preview {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 10px;
+    border: 2px dashed #adb5bd;
+    background: #fff;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+}
+
+.btn-capture {
+    font-size: 1.1rem;
+    padding: 0.85rem 1rem;
+}
+
+/* Cards de indicadores do dashboard */
+.metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
