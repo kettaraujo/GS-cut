@@ -1,4 +1,8 @@
-# GS Cut
+<p align="center">
+  <img src="static/img/logo-goldensat.png" alt="GoldenSat" width="180">
+</p>
+
+<h1 align="center">GS Cut</h1>
 
 Sistema web da **GoldenSat** para apoiar o processo de **corte e leitura de chips
 SIM Card**. A aplicação lê o **ICCID** de cada chip a partir de uma foto, valida o
