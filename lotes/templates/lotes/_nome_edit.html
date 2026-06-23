@@ -1,0 +1,11 @@
+<span class="lote-nome">
+    <form class="d-inline-flex align-items-center gap-1" hx-patch="{% url 'lotes:renomear' lote.id %}"
+          hx-target="closest .lote-nome" hx-swap="outerHTML">
+        <input name="nome" value="{{ lote.nome }}" autofocus maxlength="100" minlength="3"
+               class="form-control form-control-sm" style="width:180px"
+               hx-get="{% url 'lotes:renomear' lote.id %}" hx-trigger="keyup[key=='Escape']"
+               hx-target="closest .lote-nome" hx-swap="outerHTML">
+        <button class="btn btn-sm btn-success" type="submit" title="Salvar"><i class="bi bi-check-lg"></i></button>
+    </form>
+    {% if erro %}<div class="text-danger small mt-1">{{ erro }}</div>{% endif %}
+</span>

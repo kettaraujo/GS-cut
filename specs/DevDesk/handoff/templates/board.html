@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{# ============================================================
+   Board da sprint — a view recebe ?layout=colunas|raias|lista
+   e ?epico=&dev=&q= como GET params. A troca de layout/filtro
+   re-renderiza só #board-corpo via HTMX (partial board_corpo.html).
+
+   views.py (esboço):
+     def board(request):
+         ctx = montar_board_ctx(request)            # tasks da sprint ativa + filtros
+         if request.htmx:                           # django-htmx
+             return render(request, "partials/board_corpo.html", ctx)
+         return render(request, "board.html", ctx)
+   ============================================================ #}
+
+{% block titulo %}Board · Sprint {{ sprint_ativa.numero }}{% endblock %}
+
+{% block conteudo %}
+<header class="dd-topbar">
+  <div>
+    <h1>Board · Sprint {{ sprint_ativa.numero }}</h1>
+    <div class="sub">{{ sprint_ativa.inicio|date:"d/m" }} → {{ sprint_ativa.fim|date:"d/m" }} · {{ pts_concluidos }}/{{ sprint_ativa.pontos_comprometidos }} pts concluídos{% if n_bloqueadas %} · {{ n_bloqueadas }} bloqueada{{ n_bloqueadas|pluralize }}{% endif %}</div>
+  </div>
+  <div class="spacer"></div>
+
+  {# Seletor de layout: HTMX busca o corpo novo; Alpine só marca o botão ativo #}
+  <div class="dd-seg" x-data="{ layout: '{{ layout }}' }">
+    {% for opcao in "colunas,raias,lista"|split:"," %}
+    <button :class="layout === '{{ opcao }}' && 'on'"
+            @click="layout = '{{ opcao }}'"
+            hx-get="{% url 'board' %}?layout={{ opcao }}&{{ filtros_qs }}"
+            hx-target="#board-corpo" hx-swap="outerHTML" hx-push-url="true">
+      {{ opcao|title }}
+    </button>
+    {% endfor %}
+  </div>
+  {% include "partials/sino.html" %}
+</header>
+
+{# Filtros: form GET — qualquer mudança re-renderiza o corpo #}
+<form class="bd-filtros"
+      hx-get="{% url 'board' %}" hx-target="#board-corpo" hx-swap="outerHTML"
+      hx-trigger="change, input delay:300ms from:[name='q']">
+  <input type="hidden" name="layout" value="{{ layout }}">
+  <div class="bd-busca">
+    {% include "partials/icone.html" with nome="search" %}
+    <input class="dd-input" type="search" name="q" value="{{ q }}" placeholder="Buscar por título ou código…">
+  </div>
+  <select class="dd-select" name="epico">
+    <option value="">Todos os épicos</option>
+    {% for e in epicos %}<option value="{{ e.id }}" {% if e.id|stringformat:"s" == epico_sel %}selected{% endif %}>{{ e.nome }}</option>{% endfor %}
+  </select>
+  <select class="dd-select" name="dev">
+    <option value="">Todos os devs</option>
+    {% for u in devs %}<option value="{{ u.id }}" {% if u.id|stringformat:"s" == dev_sel %}selected{% endif %}>{{ u.get_full_name }}</option>{% endfor %}
+  </select>
+</form>
+
+<div class="dd-scroll">
+  {% include "partials/board_corpo.html" %}
+</div>
+{% endblock %}
+
+{# ============================================================
+   partials/board_corpo.html (layout=colunas) — esboço:
+
+   <div class="bd-cols" id="board-corpo"
+        x-data="{ arrastando: null }">
+     {% for coluna in colunas %}
+     <div class="bd-col"
+          :class="arrastando && 'over'"
+          @dragover.prevent
+          @drop="
+            htmx.ajax('POST', '/tasks/' + arrastando + '/mover/', {
+              target: '#board-corpo', swap: 'outerHTML',
+              values: { destino: '{{ coluna.estado }}' }
+            }); arrastando = null;">
+       <div class="bd-col-head">
+         <span class="sdot" style="background: {{ coluna.cor }}"></span>
+         <span class="bd-col-nome">{{ coluna.rotulo }}</span>
+         <span class="bd-col-count mono">{{ coluna.tasks|length }}</span>
+         <span style="flex:1"></span>
+         <span class="bd-col-pts mono">{{ coluna.pontos }} pts</span>
+       </div>
+       <div class="bd-col-body">
+         {% for task in coluna.tasks %}
+           {% include "partials/card_task.html" %}
+         {% empty %}
+           <div class="bd-vazio">Solte um card aqui</div>
+         {% endfor %}
+       </div>
+     </div>
+     {% endfor %}
+   </div>
+
+   A view de /mover/ valida RN-01 + permissão; em caso de erro
+   devolve 422 + HX-Trigger dd:toast e o board não muda.
+   ============================================================ #}

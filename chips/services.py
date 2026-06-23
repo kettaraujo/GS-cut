@@ -1,18 +1,24 @@
 """Regras de negócio dos chips: leitura por IA, correção e remoção."""
 
-import uuid
+import logging
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Max
 
 from audit.models import Log
 from audit.services import log_action
+from core.services.supabase_storage import (
+    SupabaseStorageError,
+    SupabaseStorageService,
+)
 from ocr.services import OCRBackendError, ler_iccid
 from ocr.validation import validar_iccid
 
 from .models import Chip
+
+logger = logging.getLogger(__name__)
 
 MAX_TENTATIVAS = 2
 
@@ -47,8 +53,13 @@ def processar_captura(lote, imagem_file, usuario, max_tentativas=MAX_TENTATIVAS)
             leitura = ler_iccid(image_bytes)
         except OCRBackendError as exc:
             erro = str(exc)
+            logger.warning("OCR tentativa %s: falha de backend: %s", tentativa, exc)
             continue
         resultado = validar_iccid(leitura)
+        logger.info(
+            "OCR tentativa %s: leitura=%r valido=%s erro=%s",
+            tentativa, leitura, resultado.is_valid, resultado.error,
+        )
         iccid = resultado.iccid or iccid
         if resultado.is_valid:
             sucesso = True
@@ -56,15 +67,27 @@ def processar_captura(lote, imagem_file, usuario, max_tentativas=MAX_TENTATIVAS)
             break
         erro = resultado.error
 
+    # Por padrão a FOTO NÃO é salva: a imagem é usada só para o OCR e descartada
+    # — apenas o ICCID/infos vão ao banco. Para arquivar as imagens no Supabase,
+    # defina CHIP_SALVAR_IMAGEM=True no .env.
+    imagem_url = None
+    if settings.CHIP_SALVAR_IMAGEM:
+        try:
+            imagem_url = SupabaseStorageService.upload(
+                image_bytes, iccid=iccid, tentativa=tentativa or 1
+            )
+        except SupabaseStorageError:
+            imagem_url = None
+
     chip = Chip(
         lote=lote,
         sequencia=_proxima_sequencia(lote),
         iccid=iccid if sucesso else "",
+        imagem_url=imagem_url or "",
         tentativas=tentativa or 1,
         status_leitura=Chip.StatusLeitura.SUCESSO if sucesso else Chip.StatusLeitura.ERRO,
         usuario=usuario,
     )
-    chip.imagem.save(f"{uuid.uuid4().hex}.jpg", ContentFile(image_bytes), save=False)
     chip.save()
 
     # O lote entra em revisão assim que recebe a primeira leitura.

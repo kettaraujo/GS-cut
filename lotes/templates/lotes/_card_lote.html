@@ -1,0 +1,112 @@
+{% load chipcut_tags %}
+{% comment %}
+Cada card responde "o que faço agora com este lote?" — a ação principal do
+status é o botão de destaque (SPEC3009). confirm guarda a ação pendente do
+modal de confirmação (SPEC3010).
+{% endcomment %}
+<div class="col" x-show="nomeMatch('{{ lote.nome|escapejs }}')">
+    <div class="card shadow-sm h-100 {% if lote.status == 'em_revisao' %}card-lote-em-revisao{% endif %}"
+         x-data="{ confirm: null, nomeConfirm: '' }">
+        <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                {% status_badge lote.status "lote" %}
+                <span class="text-muted small">{{ lote.data_criacao|date:"d/m/Y H:i" }}</span>
+            </div>
+            <h3 class="h6 mb-1"><i class="bi bi-box-seam text-muted"></i> {% include "lotes/_nome_display.html" %}</h3>
+            <div class="text-muted small mb-1">
+                {{ lote.n_chips }} chip{{ lote.n_chips|pluralize }}
+                {% if lote.n_erros %}· <span class="text-danger">{{ lote.n_erros }} erro{{ lote.n_erros|pluralize }}</span>{% endif %}
+            </div>
+            <div class="text-muted small mb-3">
+                <i class="bi bi-person"></i> {{ lote.usuario.username|default:"—" }}
+            </div>
+
+            {# Ação principal por status (SPEC3 §2.3) #}
+            <div class="mt-auto">
+                {% if lote.status == 'aberto' %}
+                <a href="{% url 'chips:leitura' %}?lote={{ lote.id }}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-camera"></i> Ir para Leitura
+                </a>
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'lotes:review' lote.id %}" class="btn btn-sm btn-link text-decoration-none px-0">Ver detalhes</a>
+                    <button type="button" class="btn btn-link text-danger p-0" style="font-size:0.8rem;"
+                            @click="confirm='excluir'; nomeConfirm=''"><i class="bi bi-trash3"></i> Excluir</button>
+                </div>
+
+                {% elif lote.status == 'em_revisao' %}
+                <button type="button" class="btn btn-success btn-lg w-100 mb-2" @click="confirm='aprovar'">
+                    <i class="bi bi-check2-circle"></i> Aprovar Lote
+                </button>
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'lotes:review' lote.id %}" class="btn btn-sm btn-link text-decoration-none px-0">Ver detalhes</a>
+                    <span>
+                        <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none px-0"
+                                @click="confirm='cancelar'">Cancelar</button>
+                        <button type="button" class="btn btn-link text-danger p-0 ms-2" style="font-size:0.8rem;"
+                                @click="confirm='excluir'; nomeConfirm=''"><i class="bi bi-trash3"></i> Excluir</button>
+                    </span>
+                </div>
+
+                {% elif lote.status == 'aprovado' %}
+                <button type="button" class="btn btn-warning w-100 mb-2" @click="confirm='cancelar'">
+                    <i class="bi bi-x-octagon"></i> Iniciar Cancelamento
+                </button>
+                <a href="{% url 'lotes:review' lote.id %}" class="btn btn-sm btn-link text-decoration-none px-0">Ver detalhes</a>
+
+                {% else %}
+                <a href="{% url 'exports:lote_excel' lote.id %}" class="btn btn-outline-success w-100 mb-2">
+                    <i class="bi bi-file-earmark-excel"></i> Exportar
+                </a>
+                <a href="{% url 'lotes:review' lote.id %}" class="btn btn-sm btn-link text-decoration-none px-0">Ver histórico</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Modal de confirmação de ação destrutiva (SPEC3010) #}
+        <div x-show="confirm" x-cloak class="modal-backdrop-custom" @click.self="confirm=null">
+            <div class="card shadow p-4" style="max-width:400px">
+                <h6 class="mb-2"><i class="bi bi-exclamation-circle text-warning"></i> Confirmar ação</h6>
+                <p class="mb-3" x-show="confirm==='aprovar'">
+                    Aprovar o lote <strong>{{ lote.nome }}</strong>? Os ICCIDs ficarão prontos para exportação.
+                </p>
+                <p class="mb-3" x-show="confirm==='cancelar'">
+                    Cancelar o lote <strong>{{ lote.nome }}</strong>? Nenhum chip será exportado.
+                    Esta ação não pode ser desfeita.
+                </p>
+                <template x-if="confirm==='excluir'">
+                    <div class="mb-3">
+                        {% if lote.n_chips %}
+                        <p class="small mb-2">
+                            Este lote contém <strong>{{ lote.n_chips }} chip{{ lote.n_chips|pluralize }}</strong>.
+                            Todos serão excluídos junto com o lote. Esta ação não pode ser desfeita.
+                        </p>
+                        <label class="form-label small mb-1">Digite o nome do lote para confirmar:</label>
+                        <input type="text" x-model="nomeConfirm" class="form-control form-control-sm"
+                               placeholder="{{ lote.nome }}" autocomplete="off">
+                        {% else %}
+                        <p class="small mb-0">Excluir o lote <strong>{{ lote.nome }}</strong>? Esta ação não pode ser desfeita.</p>
+                        {% endif %}
+                    </div>
+                </template>
+                <div class="d-flex gap-2 justify-content-end">
+                    <button type="button" class="btn btn-secondary btn-sm" @click="confirm=null">Voltar</button>
+                    <form x-show="confirm==='aprovar'" method="post" action="{% url 'lotes:aprovar' lote.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">Confirmar aprovação</button>
+                    </form>
+                    <form x-show="confirm==='cancelar'" method="post" action="{% url 'lotes:cancelar' lote.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Confirmar cancelamento</button>
+                    </form>
+                    <form x-show="confirm==='excluir'" method="post" action="{% url 'lotes:excluir' lote.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm"
+                                {% if lote.n_chips %}:disabled="nomeConfirm !== '{{ lote.nome|escapejs }}'"{% endif %}>
+                            Excluir definitivamente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -56,3 +56,66 @@ def exportar_lote_excel(lote, usuario):
         resultado={"lote_id": str(lote.id), "quantidade": lote.quantidade},
     )
     return buffer.getvalue()
+
+
+# Exportação consolidada: todos os ICCIDs de todos os lotes em uma planilha.
+CABECALHOS_TODOS = [
+    "Lote", "Status do lote", "#", "ICCID",
+    "Tentativas", "Status leitura", "Corrigido", "Data leitura",
+]
+
+
+def gerar_workbook_todos(chips):
+    """Monta o Workbook com uma linha por chip; a coluna ``Lote`` indica a origem."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "ICCIDs"
+
+    ws.append(["Todos os lotes — ICCIDs"])
+    ws["A1"].font = Font(bold=True, size=14)
+    ws.append([])
+
+    ws.append(CABECALHOS_TODOS)
+    for cell in ws[ws.max_row]:
+        cell.font = Font(bold=True)
+
+    for chip in chips:
+        ws.append([
+            chip.lote.nome,
+            chip.lote.get_status_display(),
+            chip.sequencia,
+            chip.iccid,
+            chip.tentativas,
+            chip.get_status_leitura_display(),
+            "Sim" if chip.corrigido_manualmente else "Não",
+            chip.data_leitura.strftime("%d/%m/%Y %H:%M"),
+        ])
+
+    larguras = [22, 16, 6, 26, 12, 16, 12, 20]
+    for i, largura in enumerate(larguras, start=1):
+        ws.column_dimensions[ws.cell(row=3, column=i).column_letter].width = largura
+
+    return wb
+
+
+def exportar_todos_excel(usuario):
+    """Gera o .xlsx com os chips ativos de todos os lotes ativos e audita."""
+    from chips.models import Chip
+
+    chips = list(
+        Chip.objects.filter(is_active=True, lote__is_active=True)
+        .select_related("lote")
+        .order_by("lote__data_criacao", "sequencia")
+    )
+    wb = gerar_workbook_todos(chips)
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    lotes = len({chip.lote_id for chip in chips})
+    log_action(
+        Log.Acao.EXPORTAR,
+        usuario=usuario,
+        resultado={"escopo": "todos", "lotes": lotes, "chips": len(chips)},
+    )
+    return buffer.getvalue()

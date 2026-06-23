@@ -1,0 +1,144 @@
+{# ============================================================
+   Drawer da task — GET /tasks/<codigo>/drawer/  →  #drawer-slot
+   Abas = Alpine (conteúdo já veio). Mutações = HTMX, cada uma
+   re-renderiza ESTE partial inteiro (target #drawer-slot),
+   simples e sempre consistente.
+   Fechar = limpa o slot, sem request.
+   ============================================================ #}
+<div x-data="{ aba: 'detalhe' }">
+  <div class="dd-drawer-veil" @click="document.getElementById('drawer-slot').innerHTML = ''"></div>
+  <aside class="dd-drawer" @keydown.escape.window="document.getElementById('drawer-slot').innerHTML = ''">
+
+    <div class="td-head">
+      <div class="td-head-l1">
+        <span class="dd-code" style="font-size: 12px">{{ task.codigo }}</span>
+        <span class="dd-state" style="color: {{ task.estado_cor }}"><span class="sdot" style="background: {{ task.estado_cor }}"></span>{{ task.get_estado_display }}</span>
+        {% if task.estado == 'BACKLOG' %}
+          {% if task.triagem == 'PENDENTE_APROVACAO' %}<span class="bl-triagem pend">Pendente aprovação</span>
+          {% else %}<span class="bl-triagem ok">Aprovada · elegível a sprint</span>{% endif %}
+        {% endif %}
+        <span style="flex: 1"></span>
+        <button class="dd-btn ghost sm" @click="document.getElementById('drawer-slot').innerHTML = ''">✕</button>
+      </div>
+      <h2 class="td-titulo">{{ task.titulo }}</h2>
+
+      <div class="td-acoes">
+        {# A view só inclui as ações válidas pro par (estado, papel) — RN-01 no server #}
+        {% for acao in task.acoes_disponiveis %}
+          <button class="dd-btn sm {{ acao.estilo }}"
+                  hx-post="{% url 'task_mover' task.codigo %}" hx-vals='{"destino": "{{ acao.destino }}"}'
+                  hx-target="#drawer-slot" hx-swap="innerHTML">
+            {{ acao.rotulo }}
+          </button>
+        {% endfor %}
+        {% if task.pode_bloquear %}
+          {# Modal de bloqueio: Alpine local, post HTMX com o motivo #}
+          <div x-data="{ aberto: false, motivo: '' }" style="display: inline-flex">
+            <button class="dd-btn sm danger" @click="aberto = true">Bloquear</button>
+            <template x-if="aberto">
+              <div class="dd-overlay" @click.self="aberto = false">
+                <div class="dd-modal">
+                  <h3>Bloquear {{ task.codigo }}</h3>
+                  <div class="m-sub">Motivo obrigatório — tempo bloqueado é medido à parte (RN-09).</div>
+                  <textarea class="dd-textarea" x-model="motivo" x-init="$el.focus()"></textarea>
+                  <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px">
+                    <button class="dd-btn sm" @click="aberto = false">Cancelar</button>
+                    <button class="dd-btn sm danger" :disabled="!motivo.trim()"
+                            hx-post="{% url 'task_bloquear' task.codigo %}"
+                            :hx-vals="JSON.stringify({ motivo })"
+                            hx-target="#drawer-slot" hx-swap="innerHTML">Bloquear task</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="td-abas">
+        <button :class="aba === 'detalhe' && 'on'" @click="aba = 'detalhe'">Detalhe</button>
+        <button :class="aba === 'comentarios' && 'on'" @click="aba = 'comentarios'">Comentários · {{ task.comentarios.count }}</button>
+        <button :class="aba === 'historico' && 'on'" @click="aba = 'historico'">Histórico</button>
+      </div>
+    </div>
+
+    <div class="td-corpo">
+      <div class="td-conteudo">
+
+        <div x-show="aba === 'detalhe'">
+          <div class="td-secao">
+            <div class="td-secao-head">
+              <span>Documentação da demanda</span>
+              <span class="td-secao-nota">Markdown · mini-PRD (RF-10)</span>
+            </div>
+            {# Renderizado no SERVER: markdown + bleach. Edição: GET form parcial → POST → re-render #}
+            <div class="dd-md">{{ task.descricao_html }}</div>
+            {% if task.pode_editar_doc %}
+              <button class="dd-btn ghost sm"
+                      hx-get="{% url 'task_doc_form' task.codigo %}"
+                      hx-target="closest .td-secao" hx-swap="outerHTML">Editar</button>
+            {% endif %}
+          </div>
+
+          <div class="td-secao" id="subtasks-{{ task.codigo }}">
+            <div class="td-secao-head">
+              <span>Subtasks</span>
+              <span class="td-secao-nota mono">{{ task.pct_subtasks }}% concluído</span>
+            </div>
+            {% for sub in task.subtasks.all %}
+              <label class="td-sub{% if sub.feita %} done{% endif %}">
+                <input type="checkbox" {% if sub.feita %}checked{% endif %} {% if not task.pode_agir %}disabled{% endif %}
+                       hx-post="{% url 'subtask_toggle' task.codigo sub.id %}"
+                       hx-target="#subtasks-{{ task.codigo }}" hx-swap="outerHTML">
+                <span>{{ sub.texto }}</span>
+              </label>
+            {% endfor %}
+            {% if task.pode_agir %}
+              <form hx-post="{% url 'subtask_criar' task.codigo %}"
+                    hx-target="#subtasks-{{ task.codigo }}" hx-swap="outerHTML"
+                    style="display: flex; gap: 7px; margin-top: 8px">
+                <input class="dd-input" name="texto" placeholder="Descreva o passo de execução…" required>
+                <button class="dd-btn sm primary" type="submit">Adicionar</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+        <div x-show="aba === 'comentarios'" x-cloak>
+          {% for c in task.comentarios.all %}
+            <div class="td-coment">
+              <span class="dd-avatar av-md" style="background: {{ c.autor.perfil.cor }}">{{ c.autor.perfil.iniciais }}</span>
+              <div>
+                <div class="td-coment-head"><strong>{{ c.autor.get_full_name }}</strong> <span class="mono">{{ c.criado_em|date:"d/m H:i" }}</span></div>
+                <div class="td-coment-texto">{{ c.texto_html }}</div> {# menções @ viram <span> no server #}
+              </div>
+            </div>
+          {% endfor %}
+          <form class="td-novocoment" hx-post="{% url 'comentario_criar' task.codigo %}"
+                hx-target="#drawer-slot" hx-swap="innerHTML">
+            <textarea class="dd-textarea" name="texto" placeholder="Comentar… use @ para mencionar" required></textarea>
+            <button class="dd-btn sm primary" type="submit">Comentar</button>
+          </form>
+        </div>
+
+        <div x-show="aba === 'historico'" x-cloak>
+          <div class="td-timeline">
+            {% for tr in task.transicoes.all reversed %}
+              <div class="td-evento">
+                <span class="td-evento-dot" style="background: {{ tr.para_cor }}"></span>
+                <div>
+                  <div>{{ tr.get_de_display }} → <strong style="color: {{ tr.para_cor }}">{{ tr.get_para_display }}</strong></div>
+                  <div class="td-evento-meta mono">{{ tr.quando|date:"d/m/Y H:i" }} · {{ tr.autor.get_full_name }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# Meta lateral: responsável, colaboradores, pontuação travada, épico, sprint,
+         prioridade, tempos por estado — mesmo markup td-meta-* do protótipo #}
+      {% include "partials/drawer_meta.html" %}
+    </div>
+  </aside>
+</div>

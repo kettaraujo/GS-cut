@@ -1,9 +1,9 @@
 from django.urls import path
 
-from .views import LogListView
+from . import views
 
 app_name = "audit"
 
 urlpatterns = [
-    path("", LogListView.as_view(), name="list"),
+    path("", views.log_list, name="list"),
 ]

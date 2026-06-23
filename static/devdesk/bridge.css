@@ -1,0 +1,201 @@
+/* ============================================================
+   GS Cut — ponte Bootstrap 5.3  →  identidade DevDesk
+   ------------------------------------------------------------
+   Reescreve as variáveis de tema do Bootstrap (data-bs-theme="dark")
+   para a paleta "sala de controle" do DevDesk (grafite + dourado
+   GoldenSat) e afina os componentes que o ChipCut já usa: cards,
+   botões, tabelas, forms, badges, modais, DataTables.
+   Os tokens --bg / --gold / --surface… vêm de devdesk.css.
+   ============================================================ */
+
+/* ---- 1. Tema base: mapeia o dark do Bootstrap para o DevDesk ---- */
+[data-bs-theme="dark"] {
+  --bs-body-bg:            var(--bg);
+  --bs-body-color:         var(--text);
+  --bs-emphasis-color:     #ffffff;
+  --bs-emphasis-color-rgb: 255, 255, 255;
+  --bs-secondary-color:    var(--text-dim);
+  --bs-tertiary-color:     var(--text-faint);
+
+  --bs-body-bg-rgb:        13, 17, 23;
+  --bs-secondary-bg:       var(--surface);
+  --bs-tertiary-bg:        var(--bg-raise);
+
+  --bs-border-color:       var(--line);
+  --bs-border-color-translucent: var(--line);
+  --bs-border-radius:      var(--r-md);
+  --bs-border-radius-sm:   var(--r-sm);
+  --bs-border-radius-lg:   var(--r-lg);
+
+  --bs-primary:            var(--gold);
+  --bs-primary-rgb:        232, 184, 75;
+  --bs-link-color:         var(--gold-bright);
+  --bs-link-color-rgb:     245, 205, 107;
+  --bs-link-hover-color:   var(--gold);
+
+  --bs-success:    var(--green);  --bs-success-rgb: 79, 201, 139;
+  --bs-danger:     var(--red);    --bs-danger-rgb:  240, 99, 92;
+  --bs-warning:    var(--gold);   --bs-warning-rgb: 232, 184, 75;
+  --bs-info:       var(--blue);   --bs-info-rgb:    122, 155, 240;
+
+  --bs-card-bg:            var(--surface);
+  --bs-card-border-color:  var(--line);
+  --bs-card-cap-bg:        var(--bg-raise);
+
+  --bs-font-sans-serif:    var(--font-ui);
+  --bs-font-monospace:     var(--font-mono);
+}
+
+html, body { background: var(--bg); }
+body { font-family: var(--font-ui); color: var(--text); }
+code, kbd, pre, samp, .iccid, .mono { font-family: var(--font-mono); }
+
+/* ---- 2. Cards / painéis ---- */
+[data-bs-theme="dark"] .card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-header.bg-white {
+  background: var(--bg-raise) !important;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 600;
+}
+[data-bs-theme="dark"] .card-footer { background: var(--bg-raise); border-top: 1px solid var(--line); }
+
+/* ---- 3. Botões ---- */
+[data-bs-theme="dark"] .btn { font-weight: 600; }
+[data-bs-theme="dark"] .btn-primary,
+[data-bs-theme="dark"] .btn-warning {
+  --bs-btn-bg: var(--gold);            --bs-btn-border-color: var(--gold);
+  --bs-btn-hover-bg: var(--gold-bright); --bs-btn-hover-border-color: var(--gold-bright);
+  --bs-btn-active-bg: var(--gold-bright); --bs-btn-active-border-color: var(--gold-bright);
+  --bs-btn-color: #1A1407;  --bs-btn-hover-color: #1A1407; --bs-btn-active-color: #1A1407;
+  --bs-btn-disabled-bg: var(--gold); --bs-btn-disabled-border-color: var(--gold); --bs-btn-disabled-color: #1A1407;
+}
+[data-bs-theme="dark"] .btn-outline-primary,
+[data-bs-theme="dark"] .btn-outline-warning {
+  --bs-btn-color: var(--gold-bright); --bs-btn-border-color: rgba(232,184,75,.45);
+  --bs-btn-hover-bg: var(--gold-dim); --bs-btn-hover-border-color: var(--gold); --bs-btn-hover-color: var(--gold-bright);
+  --bs-btn-active-bg: var(--gold-dim); --bs-btn-active-border-color: var(--gold); --bs-btn-active-color: var(--gold-bright);
+}
+[data-bs-theme="dark"] .btn-secondary {
+  --bs-btn-bg: var(--surface-2); --bs-btn-border-color: var(--line-strong); --bs-btn-color: var(--text);
+  --bs-btn-hover-bg: var(--surface-3); --bs-btn-hover-border-color: var(--text-faint); --bs-btn-hover-color: var(--text);
+}
+[data-bs-theme="dark"] .btn-light,
+[data-bs-theme="dark"] .btn-outline-light {
+  --bs-btn-color: var(--text); --bs-btn-border-color: var(--line-strong);
+  --bs-btn-bg: transparent; --bs-btn-hover-bg: var(--surface-2); --bs-btn-hover-color: var(--text);
+  --bs-btn-hover-border-color: var(--text-faint);
+}
+
+/* ---- 4. Forms ---- */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background: var(--bg);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 .15rem var(--gold-dim);
+  color: var(--text);
+}
+[data-bs-theme="dark"] .form-control::placeholder { color: var(--text-faint); }
+[data-bs-theme="dark"] .input-group-text {
+  background: var(--surface-2); border-color: var(--line-strong); color: var(--text-dim);
+}
+[data-bs-theme="dark"] .form-label { color: var(--text-dim); font-weight: 600; }
+[data-bs-theme="dark"] .form-check-input:checked { background-color: var(--gold); border-color: var(--gold); }
+[data-bs-theme="dark"] .form-check-input:focus { border-color: var(--gold); box-shadow: 0 0 0 .15rem var(--gold-dim); }
+
+/* ---- 5. Tabelas ---- */
+[data-bs-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--line);
+  --bs-table-hover-bg: var(--surface);
+  --bs-table-hover-color: var(--text);
+}
+[data-bs-theme="dark"] .table > thead th {
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--bg-raise);
+}
+
+/* ---- 6. Badges (status_badge usa bg-{cor}) ---- */
+[data-bs-theme="dark"] .badge { font-weight: 700; letter-spacing: .03em; }
+[data-bs-theme="dark"] .badge.bg-warning { color: #1A1407 !important; }
+[data-bs-theme="dark"] .badge.bg-light  { color: var(--text) !important; background: var(--surface-3) !important; }
+[data-bs-theme="dark"] .badge.bg-secondary { background: var(--surface-3) !important; color: var(--text-dim) !important; }
+
+/* ---- 7. Alerts / modais / dropdown / list-group ---- */
+[data-bs-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .modal-backdrop-custom > .card {
+  background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+}
+[data-bs-theme="dark"] .dropdown-menu { background: var(--surface-2); border-color: var(--line-strong); }
+[data-bs-theme="dark"] .dropdown-item { color: var(--text); }
+[data-bs-theme="dark"] .dropdown-item:hover { background: var(--surface-3); color: var(--text); }
+[data-bs-theme="dark"] .list-group { --bs-list-group-bg: var(--surface); --bs-list-group-border-color: var(--line); --bs-list-group-color: var(--text); }
+[data-bs-theme="dark"] hr { border-color: var(--line); }
+[data-bs-theme="dark"] .text-muted { color: var(--text-dim) !important; }
+
+/* ---- 8. DataTables ---- */
+[data-bs-theme="dark"] .dataTables_wrapper { color: var(--text-dim); }
+[data-bs-theme="dark"] table.dataTable thead th { background: var(--bg-raise); color: var(--text-faint); border-color: var(--line-strong); }
+[data-bs-theme="dark"] .dataTables_filter input,
+[data-bs-theme="dark"] .dataTables_length select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+}
+[data-bs-theme="dark"] .page-link { background: var(--surface); color: var(--text); border-color: var(--line); }
+[data-bs-theme="dark"] .page-item.active .page-link { background: var(--gold); border-color: var(--gold); color: #1A1407; }
+[data-bs-theme="dark"] .page-link:hover { background: var(--surface-3); color: var(--text); }
+
+/* ---- 9. Cards de lote em revisão (mantém o destaque, no tom dourado) ---- */
+[data-bs-theme="dark"] .card-lote-em-revisao {
+  border-left: 3px solid var(--gold);
+  background: rgba(232, 184, 75, .05) !important;
+}
+
+/* ============================================================
+   Shell GS Cut — wordmark + comportamento responsivo da sidebar
+   (as classes dd-* base vêm de devdesk.css)
+   ============================================================ */
+
+/* wordmark "GS Cut" no estilo do logo DevDesk */
+.gs-burger {
+  display: none;
+  background: transparent; border: 1px solid var(--line);
+  border-radius: var(--r-sm); color: var(--text-dim);
+  width: 32px; height: 32px; align-items: center; justify-content: center; cursor: pointer;
+}
+.gs-burger:hover { color: var(--text); border-color: var(--line-strong); }
+
+.dd-scroll > main { background: var(--bg); }
+
+/* sidebar vira gaveta no mobile */
+@media (max-width: 991.98px) {
+  .gs-burger { display: inline-flex; }
+  .dd-sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 1050;
+    transform: translateX(-100%);
+    transition: transform .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .dd-sidebar.gs-open { transform: none; box-shadow: 18px 0 60px rgba(0,0,0,.5); }
+  .gs-backdrop { position: fixed; inset: 0; background: rgba(5,8,12,.6); z-index: 1040; }
+}
+@media (min-width: 992px) {
+  .gs-backdrop { display: none; }
+}
+
+/* loading global HTMX herdado de app.css fica sobre o tema escuro */
+#loading-indicator .spinner-border { color: var(--gold) !important; }

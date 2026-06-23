@@ -2,7 +2,12 @@
 
 from django.conf import settings
 
-from .backends import MockOCRBackend, OCRBackendError, OpenAIVisionBackend
+from .backends import (
+    GeminiVisionBackend,
+    MockOCRBackend,
+    OCRBackendError,
+    OpenAIVisionBackend,
+)
 
 __all__ = ["get_ocr_backend", "ler_iccid", "OCRBackendError"]
 
@@ -10,6 +15,8 @@ __all__ = ["get_ocr_backend", "ler_iccid", "OCRBackendError"]
 def get_ocr_backend():
     """Instancia o backend de OCR conforme ``settings.OCR_BACKEND``."""
     backend = (settings.OCR_BACKEND or "mock").lower()
+    if backend == "gemini":
+        return GeminiVisionBackend()
     if backend == "openai":
         return OpenAIVisionBackend()
     if backend == "mock":

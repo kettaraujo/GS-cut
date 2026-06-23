@@ -1,0 +1,35 @@
+{% load chipcut_tags %}
+{% if historico %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm align-middle chipcut-datatable" style="width:100%"
+           data-page-length="25" data-order-col="4" data-order-dir="desc">
+        <thead>
+            <tr>
+                <th>Nome</th><th class="text-center">Chips</th><th>Status</th>
+                <th>Aprovado por</th><th>Data</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lote in historico %}
+            <tr>
+                <td>{{ lote.nome }}</td>
+                <td class="text-center">{{ lote.n_chips }}</td>
+                <td>{% status_badge lote.status "lote" %}</td>
+                <td>{{ lote.aprovado_por.username|default:"—" }}</td>
+                <td data-order="{{ lote.data_aprovacao|date:'YmdHis' }}">{{ lote.data_aprovacao|date:"d/m/Y H:i"|default:"—" }}</td>
+                <td class="text-end">
+                    <a href="{% url 'exports:lote_excel' lote.id %}" class="btn btn-sm btn-outline-success" title="Exportar">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-3 text-muted">
+    <i class="bi bi-inbox fs-3"></i>
+    <p class="mt-2 mb-0">Nenhum lote no histórico.</p>
+</div>
+{% endif %}

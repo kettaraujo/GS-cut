@@ -1,0 +1,73 @@
+{% load chipcut_tags static %}
+{% if secao.chips %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm align-middle chipcut-datatable" style="width:100%">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Imagem</th>
+                <th>ICCID</th>
+                <th class="text-center">Tentativas</th>
+                <th>Leitura</th>
+                <th>Revisão</th>
+                <th>Operador</th>
+                <th>Data leitura</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chip in secao.chips %}
+            <tr>
+                <td>{{ chip.sequencia }}</td>
+                <td>
+                    {% if chip.imagem_url %}
+                    <img src="{{ chip.imagem_url }}" class="chip-thumb cursor-pointer" alt="chip"
+                         style="width:40px;height:40px" loading="lazy"
+                         onclick="verImagemChip('{{ chip.imagem_url }}')"
+                         onerror="this.src='{% static 'img/chip-placeholder.png' %}'">
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td>
+                    {% if lote.editavel %}
+                    <form method="post" action="{% url 'chips:corrigir' chip.id %}" class="d-flex gap-1">
+                        {% csrf_token %}
+                        <input type="text" name="iccid" value="{{ chip.iccid }}"
+                               class="form-control form-control-sm iccid" style="max-width:210px">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Salvar"><i class="bi bi-check-lg"></i></button>
+                    </form>
+                    {% else %}
+                    <span class="iccid cursor-pointer" title="Clique para copiar"
+                          onclick="chipcutCopy(this, '{{ chip.iccid }}')">{{ chip.iccid|default:"—" }}</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if chip.tentativas > 1 %}<span class="badge text-bg-warning">2ª</span>
+                    {% else %}<span class="badge text-bg-success">1ª</span>{% endif %}
+                    {% if chip.corrigido_manualmente %}<span class="badge text-bg-info">corrigido</span>{% endif %}
+                </td>
+                <td>{% status_badge chip.status_leitura "leitura" %}</td>
+                <td>{% status_badge chip.status_revisao "revisao" %}</td>
+                <td>{{ chip.usuario.username|default:"—" }}</td>
+                <td>{{ chip.data_leitura|date:"d/m/Y H:i" }}</td>
+                <td class="text-end">
+                    {% if lote.editavel %}
+                    <form method="post" action="{% url 'chips:remover' chip.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-inbox fs-3"></i>
+    <p class="mt-2 mb-0">Nenhum chip nesta seção.
+        {% if secao.status == 'aguardando_aprovacao' and lote.editavel %}
+        <a href="{% url 'chips:capture' lote.id %}">Ler o primeiro</a>.{% endif %}
+    </p>
+</div>
+{% endif %}

@@ -1,0 +1,9 @@
+{% if var is not None %}
+    {% if var > 0 %}
+        <div class="small text-success"><i class="bi bi-arrow-up-short"></i> {{ var }}% vs anterior</div>
+    {% elif var < 0 %}
+        <div class="small text-danger"><i class="bi bi-arrow-down-short"></i> {{ var }}% vs anterior</div>
+    {% else %}
+        <div class="small text-muted"><i class="bi bi-dash"></i> estável</div>
+    {% endif %}
+{% endif %}

@@ -1,0 +1,35 @@
+{% load chipcut_tags %}
+{% comment %}
+No estado "aguardando" o painel fica oculto (spec5 §3.4): o preview aberto já
+indica que a câmera está pronta. Sucesso/erro/processando continuam visíveis.
+{% endcomment %}
+<div id="status-panel" hx-swap-oob="true"
+     class="status-panel status-{{ estado.tipo|default:'aguardando' }} text-center p-2 rounded mt-2{% if not estado.tipo or estado.tipo == 'aguardando' %} d-none{% endif %}"
+     data-estado="{{ estado.tipo|default:'aguardando' }}">
+    {% if estado.tipo == 'sucesso' or estado.tipo == 'sucesso2' %}
+        <div class="d-flex align-items-center justify-content-center gap-2 fw-semibold">
+            <i class="bi bi-check-lg"></i>
+            <span style="font-size:0.85rem;">{% if estado.tipo == 'sucesso2' %}LIDO (2ª tentativa){% else %}LIDO{% endif %}</span>
+        </div>
+        <div class="iccid my-1">{{ estado.iccid }}</div>
+        {% if estado.chip_id %}
+        <form class="d-flex gap-1 justify-content-center mt-1"
+              hx-post="{% url 'chips:leitura_corrigir' estado.chip_id %}" hx-target="#fila" hx-swap="outerHTML">
+            {% csrf_token %}
+            <input name="iccid" value="{{ estado.iccid }}" id="quick-correct"
+                   class="form-control form-control-sm iccid" style="max-width:230px">
+            <button class="btn btn-sm btn-light" title="Corrigir"><i class="bi bi-check-lg"></i></button>
+        </form>
+        <div class="small mt-1 opacity-75" style="font-size:0.7rem;">Tab para corrigir · Esc para aceitar</div>
+        {% endif %}
+    {% elif estado.tipo == 'erro' %}
+        <div class="d-flex align-items-center justify-content-center gap-2 fw-semibold">
+            <i class="bi bi-x-lg"></i> <span style="font-size:0.85rem;">ERRO</span>
+        </div>
+        <div class="small">{{ estado.msg|default:'Reposicione o chip.' }}</div>
+    {% elif estado.tipo == 'processando' %}
+        <div class="d-flex align-items-center justify-content-center gap-2 fw-semibold">
+            <i class="bi bi-arrow-repeat spin"></i> <span style="font-size:0.85rem;">PROCESSANDO…</span>
+        </div>
+    {% endif %}
+</div>

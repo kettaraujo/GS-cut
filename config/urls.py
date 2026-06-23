@@ -19,7 +19,7 @@ urlpatterns = [
     path("auditoria/", include("audit.urls")),
 ]
 
-# Servir arquivos de mídia (imagens dos chips) em desenvolvimento.
+# Imagens dos chips agora ficam no Supabase Storage (SPEC3 §1.11), então não há
+# mais MEDIA para servir. Apenas os estáticos em desenvolvimento.
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.BASE_DIR / "static")

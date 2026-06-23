@@ -1,34 +1,65 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Entrar — ChipCut{% endblock %}
+{% block title %}Entrar — GS Cut{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-sm-8 col-md-5 col-lg-4">
-        <div class="card shadow-sm mt-5">
-            <div class="card-body p-4">
-                <h1 class="h4 text-center mb-4">✂️ ChipCut</h1>
+<div class="dd-login">
+  <div class="dd-login-left">
+    <div class="dd-login-grid"></div>
 
-                {% if form.errors %}
-                    <div class="alert alert-danger">Usuário ou senha inválidos.</div>
-                {% endif %}
-
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label" for="id_username">Usuário</label>
-                        <input type="text" name="username" id="id_username"
-                               class="form-control" autofocus required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="id_password">Senha</label>
-                        <input type="password" name="password" id="id_password"
-                               class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                </form>
-            </div>
-        </div>
+    <div style="position: relative">
+      <div class="dd-logo" style="border: 0; padding: 0; font-size: 26px">
+        <span>GS<span class="gold">Cut</span></span><span class="cursor" style="height: 22px; width: 11px"></span>
+      </div>
+      <div style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); margin-top: 6px">
+        Grupo Golden Sat · Operação de Chips
+      </div>
     </div>
+
+    <div style="position: relative; max-width: 440px">
+      <h1 style="font-size: 30px; line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.02em; font-weight: 700">
+        Captura, leitura e exportação de <span style="color: var(--gold)">ICCIDs</span> ponta a ponta.
+      </h1>
+      <p style="color: var(--text-dim); font-size: 13.5px; line-height: 1.65; margin: 0">
+        Fotografe o chip pelo celular, deixe o OCR extrair o ICCID, valide,
+        agrupe em lotes e exporte em Excel. Tudo registrado e auditável.
+      </p>
+      <div class="lg-stats">
+        <div><span class="mono">OCR</span><small>leitura automática</small></div>
+        <div><span class="mono">XLSX</span><small>exportação</small></div>
+        <div><span class="mono">LOG</span><small>auditoria</small></div>
+      </div>
+    </div>
+
+    <div style="position: relative; font-size: 10.5px; color: var(--text-faint)" class="mono">
+      single-tenant · interno · PT-BR
+    </div>
+  </div>
+
+  <div class="dd-login-right">
+    <div class="dd-login-card">
+      <h2 style="margin: 0 0 4px; font-size: 18px">Entrar</h2>
+      <p style="color: var(--text-dim); font-size: 12px; margin: 0 0 20px">Acesso interno do Grupo Golden Sat.</p>
+
+      {% if form.errors %}
+        <div class="dd-toast erro" style="margin: 0 0 16px; animation: none">Usuário ou senha inválidos.</div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <label class="dd-field-label" for="id_username">Usuário</label>
+        <input class="dd-input" type="text" name="username" id="id_username" autofocus required>
+
+        <label class="dd-field-label" for="id_password" style="margin-top: 14px">Senha</label>
+        <input class="dd-input" type="password" name="password" id="id_password" required>
+
+        <button type="submit" class="dd-btn primary" style="width: 100%; justify-content: center; margin-top: 20px; padding: 9px 0">
+          Entrar no GS Cut <i class="bi bi-arrow-right"></i>
+        </button>
+        <input type="hidden" name="next" value="{{ next }}">
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -23,27 +23,29 @@ class LuhnTests(SimpleTestCase):
         self.assertFalse(luhn_valido("89abc"))
 
 
-class ValidarIccidTests(SimpleTestCase):
-    def test_iccid_valido(self):
-        r = validar_iccid("8955 1701 2000 0000 015")
+class ValidarSerialTests(SimpleTestCase):
+    def test_serial_valido(self):
+        # Dois blocos impressos no chip Eseye, concatenados (16 dígitos).
+        r = validar_iccid("51702103 91614068")
         self.assertTrue(r.is_valid)
-        self.assertEqual(r.iccid, "8955170120000000015")
+        self.assertEqual(r.iccid, "5170210391614068")
         self.assertEqual(r.error, "")
 
-    def test_prefixo_invalido(self):
-        r = validar_iccid("1255170120000000016")
-        self.assertFalse(r.is_valid)
-        self.assertIn("89", r.error)
+    def test_ignora_codigo_de_lote(self):
+        # Letras (ex.: 'ES') são descartadas pela normalização.
+        r = validar_iccid("5170210391614068 ES5738")
+        self.assertTrue(r.is_valid)
+        self.assertEqual(r.iccid, "51702103916140685738")
 
-    def test_comprimento_invalido(self):
+    def test_comprimento_curto(self):
         r = validar_iccid("8955")
         self.assertFalse(r.is_valid)
         self.assertIn("Comprimento", r.error)
 
-    def test_luhn_invalido(self):
-        r = validar_iccid("8955170120000000016")
+    def test_comprimento_longo(self):
+        r = validar_iccid("1" * 21)
         self.assertFalse(r.is_valid)
-        self.assertIn("Luhn", r.error)
+        self.assertIn("Comprimento", r.error)
 
     def test_vazio(self):
         r = validar_iccid("")

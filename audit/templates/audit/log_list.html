@@ -1,48 +1,138 @@
 {% extends "base.html" %}
+{% load chipcut_tags %}
 
-{% block title %}Auditoria — ChipCut{% endblock %}
+{% block title %}Logs — ChipCut{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Auditoria</h1>
+<div x-data="gsTabs('todos', ['todos','leituras','correcoes','aprovacoes','cancelamentos','renomeacoes'])">
 
-<div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-striped table-hover mb-0 align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Data/Hora</th>
-                    <th>Ação</th>
-                    <th>ICCID</th>
-                    <th>Usuário</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in logs %}
-                <tr>
-                    <td>{{ log.data_hora|date:"d/m/Y H:i:s" }}</td>
-                    <td>{{ log.get_acao_display }}</td>
-                    <td class="iccid">{{ log.iccid|default:"—" }}</td>
-                    <td>{{ log.usuario|default:"—" }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Nenhum registro.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0"><i class="bi bi-clipboard-data text-primary"></i> Logs</h1>
+
+        <!-- Abas padronizadas: filtram a tabela por tipo de ação (SPEC2014) -->
+        <div class="gs-tabs justify-content-end">
+            <button type="button" class="aba-lote" :class="abaAtiva==='todos' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('todos'); aplicarFiltroLog('todos')">
+                <i class="bi bi-list-ul me-1"></i> Todos
+            </button>
+            <button type="button" class="aba-lote" :class="abaAtiva==='leituras' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('leituras'); aplicarFiltroLog('leituras')">
+                <i class="bi bi-camera me-1"></i> Leituras
+            </button>
+            <button type="button" class="aba-lote" :class="abaAtiva==='correcoes' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('correcoes'); aplicarFiltroLog('correcoes')">
+                <i class="bi bi-pencil me-1"></i> Correções
+            </button>
+            <button type="button" class="aba-lote" :class="abaAtiva==='aprovacoes' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('aprovacoes'); aplicarFiltroLog('aprovacoes')">
+                <i class="bi bi-check-circle me-1"></i> Aprovações
+            </button>
+            <button type="button" class="aba-lote" :class="abaAtiva==='cancelamentos' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('cancelamentos'); aplicarFiltroLog('cancelamentos')">
+                <i class="bi bi-x-circle me-1"></i> Cancelamentos
+            </button>
+            <button type="button" class="aba-lote" :class="abaAtiva==='renomeacoes' ? 'aba-ativa' : 'aba-inativa'"
+                    @click="setAba('renomeacoes'); aplicarFiltroLog('renomeacoes')">
+                <i class="bi bi-input-cursor-text me-1"></i> Renomeações
+            </button>
+        </div>
+    </div>
+
+    <div class="gs-tab-content">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table id="tabela-logs" class="table table-hover table-sm align-middle chipcut-datatable" style="width:100%"
+                           data-page-length="50" data-order-col="0" data-order-dir="desc">
+                        <thead>
+                            <tr>
+                                <th>Data/hora</th><th>Ação</th><th>ICCID</th>
+                                <th>Usuário</th><th>Resultado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td data-order="{{ log.data_hora|date:'YmdHis' }}">{{ log.data_hora|date:"d/m/Y H:i:s" }}</td>
+                                <td>
+                                    {% status_badge log.acao "log" %}
+                                    <span class="d-none">{{ log.acao }}</span>
+                                </td>
+                                <td>
+                                    {% if log.iccid %}
+                                    <span class="iccid cursor-pointer" title="Clique para copiar"
+                                          onclick="chipcutCopy(this, '{{ log.iccid }}')">{{ log.iccid }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td>{{ log.usuario.username|default:"—" }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            onclick="verLog('{{ log.id }}')">
+                                        <i class="bi bi-braces"></i> Ver detalhes
+                                    </button>
+                                    <pre id="logdata-{{ log.id }}" class="d-none">{{ log.resultado|json_pretty }}</pre>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Exibindo os {{ logs|length }} registros mais recentes (limite {{ limite }}).</p>
+                {% else %}
+                <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1"></i><p class="mt-2 mb-0">Nenhum registro.</p></div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
-{% if is_paginated %}
-<nav class="mt-3">
-    <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
-        {% endif %}
-        <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
-        {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
+<!-- Modal de detalhes do log (SPEC2: resultado JSON) -->
+<div class="modal fade" id="logModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Detalhes do log</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="logModalBody" class="bg-dark text-light p-3 rounded mb-0"
+                     style="max-height:400px;overflow-y:auto;font-size:0.8rem"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Cada aba mapeia para o código de ação usado no filtro da coluna "Ação".
+    window.MAPA_LOG = {
+        todos: '', leituras: 'leitura', correcoes: 'correcao',
+        aprovacoes: 'aprovar_lote', cancelamentos: 'cancelar_lote', renomeacoes: 'renomear_lote',
+    };
+    // Filtra a DataTable pela aba ativa (busca exata na coluna 1).
+    window.aplicarFiltroLog = function (aba) {
+        if (!window.$ || !$.fn.DataTable || !$.fn.DataTable.isDataTable('#tabela-logs')) return;
+        var cod = window.MAPA_LOG[aba] || '';
+        $('#tabela-logs').DataTable().column(1).search(cod, false, false).draw();
+    };
+    // Ao carregar, aplica o filtro da aba vinda da URL (?aba=) assim que a tabela existir.
+    document.addEventListener('DOMContentLoaded', function () {
+        var aba = new URLSearchParams(window.location.search).get('aba') || 'todos';
+        var espera = setInterval(function () {
+            if (window.$ && $.fn.DataTable && $.fn.DataTable.isDataTable('#tabela-logs')) {
+                clearInterval(espera);
+                window.aplicarFiltroLog(aba);
+            }
+        }, 50);
+        setTimeout(function () { clearInterval(espera); }, 5000);
+    });
+    // Abre o modal com o JSON do resultado (lido de um <pre> oculto).
+    window.verLog = function (id) {
+        var fonte = document.getElementById('logdata-' + id);
+        document.getElementById('logModalBody').textContent = fonte ? fonte.textContent.trim() : '—';
+        new bootstrap.Modal(document.getElementById('logModal')).show();
+    };
+</script>
 {% endblock %}

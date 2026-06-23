@@ -1,0 +1,84 @@
+/* ============================================================================
+   ChipCut — tela de login com a marca GoldenSat
+   Acrescente este bloco ao final de static/css/app.css
+   ----------------------------------------------------------------------------
+   Usa as variáveis já definidas em base.html (--chipcut-sidebar-bg / -text).
+   Cobre a viewport inteira com position:fixed, então funciona mesmo dentro do
+   <main class="container py-4"> que o base.html aplica a usuários não logados.
+   ============================================================================ */
+
+:root {
+    --gs-gold: #efc319;        /* dourado da logo GoldenSat */
+    --gs-gold-700: #c79e0f;    /* dourado mais escuro (hover / texto)  */
+    --gs-navy: #1a2332;        /* azul-marinho (= --chipcut-sidebar-bg) */
+    --gs-navy-700: #141b27;
+}
+
+.cc-login {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+    background:
+        radial-gradient(120% 90% at 50% -10%, rgba(239, 195, 25, .10), transparent 55%),
+        linear-gradient(160deg, var(--gs-navy) 0%, var(--gs-navy-700) 100%);
+}
+
+.cc-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: .5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .175);
+    overflow: hidden;
+}
+
+.cc-login-accent {
+    height: 4px;
+    background: linear-gradient(90deg, var(--gs-gold) 0%, var(--gs-gold-700) 100%);
+}
+
+.cc-login-logo { height: 84px; width: auto; }
+.cc-login-title { color: var(--gs-navy); }
+.cc-login-sub {
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    color: var(--gs-gold-700);
+    margin-top: .25rem;
+}
+
+.cc-btn-navy {
+    background: var(--gs-navy);
+    color: #fff;
+    font-weight: 600;
+    border: 1px solid var(--gs-navy);
+}
+.cc-btn-navy:hover,
+.cc-btn-navy:focus { background: var(--gs-navy-700); color: var(--gs-gold); }
+
+.cc-palette {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+.cc-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, .08);
+}
+
+.cc-login-foot {
+    color: rgba(255, 255, 255, .6);
+    font-size: .8rem;
+    margin: 1.25rem 0 0;
+}

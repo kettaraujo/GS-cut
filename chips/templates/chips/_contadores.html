@@ -1,0 +1,8 @@
+<div id="contadores" hx-swap-oob="true" class="d-flex flex-wrap gap-3 small mt-2">
+    {% if contadores %}
+    <span><strong class="fs-6">{{ contadores.total }}</strong> lidos</span>
+    <span class="text-success"><strong class="fs-6">{{ contadores.sucesso }}</strong> ✓</span>
+    <span class="text-danger"><strong class="fs-6">{{ contadores.erro }}</strong> ✗</span>
+    <span class="text-muted">Taxa: <strong>{{ contadores.taxa }}%</strong></span>
+    {% endif %}
+</div>

@@ -1,5 +1,346 @@
 /* ChipCut — estilos do MVP */
 
+body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Layout: sidebar fixa (desktop) + offcanvas (mobile)
+   --------------------------------------------------------------------------- */
+.chipcut-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.chipcut-sidebar {
+    width: 250px;
+    background: var(--chipcut-sidebar-bg);
+    color: var(--chipcut-sidebar-text);
+}
+
+@media (min-width: 992px) {
+    /* No desktop a sidebar fica fixa e o conteúdo rola ao lado.
+       O Bootstrap, em lg+, força a .offcanvas-lg a fundo transparente e esconde
+       o .offcanvas-header — então reforçamos o navy e reexibimos a marca. */
+    .chipcut-sidebar.offcanvas-lg {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        visibility: visible !important;
+        transform: none !important;
+        background: var(--chipcut-sidebar-bg) !important;
+    }
+    .chipcut-sidebar .offcanvas-header {
+        display: flex !important;
+    }
+}
+
+.chipcut-brand,
+.chipcut-sidebar .offcanvas-title {
+    color: var(--chipcut-sidebar-text);
+}
+
+.chipcut-nav .nav-link {
+    color: #cbd3df;
+    padding: 0.7rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-left: 3px solid transparent;
+}
+
+.chipcut-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.chipcut-nav .nav-link.active {
+    background: rgba(212, 165, 116, 0.15);
+    color: var(--chipcut-sidebar-text);
+    border-left-color: var(--chipcut-sidebar-text);
+}
+
+.chipcut-nav .nav-link.disabled {
+    color: #6c7a91;
+}
+
+.chipcut-sidebar-footer {
+    color: #cbd3df;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chipcut-content {
+    min-width: 0;
+}
+
+/* Loading global das requisições HTMX (escondido por padrão pelo htmx). */
+#loading-indicator {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
+}
+
+/* KPI cards do dashboard */
+.kpi-card .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.kpi-card .kpi-icon {
+    font-size: 1.6rem;
+    opacity: 0.9;
+}
+
+/* KPI cards compactos (SPEC2001) — máx ~90px, layout horizontal */
+.kpi-compact {
+    max-height: 90px;
+}
+.kpi-compact .kpi-num {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.kpi-compact .kpi-lbl {
+    font-size: 0.72rem;
+}
+
+/* Modais ocupam quase a viewport no mobile (SPEC2: max-width 95vw) */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        max-width: 95vw;
+        margin: 0.5rem auto;
+    }
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Abas da listagem de lotes (spec5) — estilo DevDesk: borda inferior colorida
+   quando ativa. Usa os tokens de devdesk.css (--gold/--blue/--green).
+   --------------------------------------------------------------------------- */
+.lotes-tabs, .gs-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.aba-lote {
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    border: 1px solid transparent;
+    border-bottom: 3px solid transparent;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    color: var(--text-dim);
+    background: transparent;
+    cursor: pointer;
+}
+.aba-lote:hover {
+    background: var(--surface);
+    color: var(--text);
+}
+.aba-ativa {
+    color: var(--text) !important;
+    background: var(--surface);
+    border-color: var(--line);
+    border-bottom-color: var(--gold);  /* acento padrão p/ abas sem cor de status */
+}
+.aba-ativa.aba-amarela  { border-bottom-color: var(--gold) !important; }
+.aba-ativa.aba-azul     { border-bottom-color: var(--blue) !important; }
+.aba-ativa.aba-verde    { border-bottom-color: var(--green) !important; }
+.aba-ativa.aba-vermelha { border-bottom-color: var(--red) !important; }
+.aba-inativa {
+    color: var(--text-dim);
+    background: transparent;
+    border-bottom: 3px solid transparent;
+}
+.lotes-content, .gs-tab-content {
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+}
+/* Badge de contagem por aba acompanha a cor do acento da aba (âmbar/azul/verde).
+   bg-primary é remapeado p/ dourado no tema, então reforçamos o azul aqui. */
+.aba-lote .badge.bg-primary { background-color: var(--blue) !important; color: #0b1020 !important; }
+
+/* ---------------------------------------------------------------------------
+   Cards de lote (SPEC3 §2): destaque para os que aguardam aprovação
+   --------------------------------------------------------------------------- */
+.card-lote-em-revisao {
+    border-left: 4px solid var(--chipcut-warning);
+    background-color: #fffbf0;
+}
+
+/* Backdrop do modal de confirmação (Alpine.js — SPEC3010) */
+.modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+}
+.modal-backdrop-custom > .card {
+    width: 100%;
+    background: #fff;
+}
+
+/* ---------------------------------------------------------------------------
+   Tela de leitura em massa (SPEC2)
+   --------------------------------------------------------------------------- */
+/* Área de câmera compacta (SPEC3013): nunca maior que 320px, centralizada. */
+#camera-preview-container {
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* Moldura da câmera (preview 4:3, fundo escuro, borda fina — SPEC3) */
+.camera-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 2px solid var(--line-strong);
+    border-radius: 12px;
+    background: #05080c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.camera-frame #preview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.camera-frame #camera-stream {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.camera-frame #placeholder {
+    color: #adb5bd;
+}
+
+/* Overlay de guia sutil, estilo scanner (SPEC3015) */
+#camera-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 55%;
+    border: 2px dashed rgba(255, 255, 255, 0.6);
+    border-radius: 6px;
+    pointer-events: none;
+}
+#camera-overlay::before,
+#camera-overlay::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: #00e5ff;
+    border-style: solid;
+    border-width: 0;
+}
+#camera-overlay::before {
+    top: -2px;
+    left: -2px;
+    border-top-width: 3px;
+    border-left-width: 3px;
+}
+#camera-overlay::after {
+    bottom: -2px;
+    right: -2px;
+    border-bottom-width: 3px;
+    border-left-width: 0;
+    border-right-width: 3px;
+}
+
+/* Preview ao vivo da câmera IP (snapshot via proxy, atualizado por JS) */
+.camera-frame #camera-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Overlay de status sobre o preview (spec5 §3.5): azul/verde/vermelho.
+   Elemento separado do guia (#camera-overlay). */
+.camera-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    border-radius: 12px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+}
+.camera-overlay.overlay-azul     { background: rgba(13, 110, 253, 0.35); opacity: 1; }
+.camera-overlay.overlay-verde    { background: rgba(79, 201, 139, 0.42); opacity: 1; }
+.camera-overlay.overlay-vermelho { background: rgba(240, 99, 92, 0.42); opacity: 1; }
+
+/* Barra de calibração da sensibilidade (staff): % de mudança em tempo real */
+.calib-bar {
+    position: relative;
+    height: 10px;
+    background: var(--surface-3);
+    border-radius: 5px;
+}
+.calib-fill {
+    height: 100%;
+    width: 0;
+    background: var(--blue);
+    border-radius: 5px;
+    transition: width 0.1s linear;
+}
+.calib-mark {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 16px;
+    background: var(--text-faint);  /* marcador "estável" */
+    border-radius: 1px;
+}
+.calib-mark-mov { background: var(--gold); }  /* marcador "movimento" */
+
+/* Painel de status da leitura — cor de fundo por estado */
+.status-panel {
+    color: #fff;
+    transition: background-color .2s;
+}
+.status-panel .iccid { color: #fff; }
+.status-aguardando { background: #343a40; }            /* cinza escuro */
+.status-processando { background: #0d6efd; }           /* azul */
+.status-sucesso { background: #198754; }               /* verde */
+.status-sucesso2 { background: #5c9a3a; }              /* verde amarelado */
+.status-erro { background: #dc3545; }                  /* vermelho */
+
+@media (prefers-reduced-motion: no-preference) {
+    .spin { animation: cc-spin 1s linear infinite; display: inline-block; }
+}
+@keyframes cc-spin { to { transform: rotate(360deg); } }
+
 .iccid {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     letter-spacing: 0.5px;
@@ -10,7 +351,7 @@
     height: 64px;
     object-fit: cover;
     border-radius: 6px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--line);
 }
 
 /* Tela de captura mobile */
@@ -18,8 +359,8 @@
     width: 100%;
     max-width: 420px;
     border-radius: 10px;
-    border: 2px dashed #adb5bd;
-    background: #fff;
+    border: 2px dashed var(--line-strong);
+    background: var(--surface);
     aspect-ratio: 4 / 3;
     object-fit: contain;
 }
@@ -34,4 +375,179 @@
     font-size: 2rem;
     font-weight: 700;
     line-height: 1;
+}
+
+/* ============================================================================
+   Dark mode (SPEC4 §4) — só adiciona overrides sob [data-theme="dark"];
+   o tema claro continua igual (defaults do Bootstrap).
+   ============================================================================ */
+[data-theme="dark"] {
+    --bg-body: #0f1117;
+    --bg-card: #1a1f2e;
+    --text-primary: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-color: #374151;
+    --input-bg: #1f2937;
+}
+[data-theme="dark"] body,
+[data-theme="dark"] body.bg-light {
+    background-color: var(--bg-body) !important;
+    color: var(--text-primary);
+}
+[data-theme="dark"] .card {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .card-header.bg-white {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .text-muted { color: var(--text-muted) !important; }
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .form-control::placeholder { color: var(--text-muted); }
+[data-theme="dark"] .input-group-text {
+    background-color: var(--input-bg);
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-backdrop-custom > .card { background-color: var(--bg-card); color: var(--text-primary); }
+[data-theme="dark"] .dropdown-menu { background-color: var(--bg-card); border-color: var(--border-color); }
+[data-theme="dark"] .list-group-item {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .accordion-item {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .accordion-button,
+[data-theme="dark"] .accordion-button.collapsed {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .table {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-color: var(--text-primary);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .table-hover > tbody > tr:hover > * { --bs-table-bg-state: #2d3748; }
+[data-theme="dark"] .card-lote-em-revisao { background-color: #2a2410; }
+[data-theme="dark"] hr { border-color: var(--border-color); }
+
+/* DataTables no dark mode (SPEC4018) — estilos explícitos, sem herança */
+[data-theme="dark"] .dataTables_wrapper { color: var(--text-primary); }
+[data-theme="dark"] table.dataTable thead th {
+    background-color: #1f2937;
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] table.dataTable tbody tr { background-color: var(--bg-card); }
+[data-theme="dark"] table.dataTable tbody tr:hover { background-color: #2d3748; }
+[data-theme="dark"] .dataTables_filter input,
+[data-theme="dark"] .dataTables_length select {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .page-link {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: var(--chipcut-primary);
+    border-color: var(--chipcut-primary);
+}
+
+/* ============================================================================
+   ChipCut — tela de login com a marca GoldenSat
+   ----------------------------------------------------------------------------
+   Usa as variáveis já definidas em base.html (--chipcut-sidebar-bg / -text).
+   Cobre a viewport inteira com position:fixed, então funciona mesmo dentro do
+   <main class="container py-4"> que o base.html aplica a usuários não logados.
+   ============================================================================ */
+
+:root {
+    --gs-gold: #efc319;        /* dourado da logo GoldenSat */
+    --gs-gold-700: #c79e0f;    /* dourado mais escuro (hover / texto)  */
+    --gs-navy: #1a2332;        /* azul-marinho (= --chipcut-sidebar-bg) */
+    --gs-navy-700: #141b27;
+}
+
+.cc-login {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+    background:
+        radial-gradient(120% 90% at 50% -10%, rgba(239, 195, 25, .10), transparent 55%),
+        linear-gradient(160deg, var(--gs-navy) 0%, var(--gs-navy-700) 100%);
+}
+
+.cc-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: .5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .175);
+    overflow: hidden;
+}
+
+.cc-login-accent {
+    height: 4px;
+    background: linear-gradient(90deg, var(--gs-gold) 0%, var(--gs-gold-700) 100%);
+}
+
+.cc-login-logo { height: 84px; width: auto; }
+.cc-login-title { color: var(--gs-navy); }
+.cc-login-sub {
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    color: var(--gs-gold-700);
+    margin-top: .25rem;
+}
+
+.cc-btn-navy {
+    background: var(--gs-navy);
+    color: #fff;
+    font-weight: 600;
+    border: 1px solid var(--gs-navy);
+}
+.cc-btn-navy:hover,
+.cc-btn-navy:focus { background: var(--gs-navy-700); color: var(--gs-gold); }
+
+.cc-palette {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+.cc-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, .08);
+}
+
+.cc-login-foot {
+    color: rgba(255, 255, 255, .6);
+    font-size: .8rem;
+    margin: 1.25rem 0 0;
 }

@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% load chipcut_tags %}
+
+{% block title %}Leitura — GS Cut{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3"><i class="bi bi-camera text-primary"></i> Leitura</h1>
+
+{% if not lotes %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <p class="mt-2 mb-3 text-muted">Nenhum lote aberto. Crie um para começar a ler.</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoLote">
+            <i class="bi bi-plus-lg"></i> Novo lote
+        </button>
+    </div>
+</div>
+{% else %}
+
+<!-- Header da sessão -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <label class="form-label small text-muted mb-0">Lote ativo</label>
+            <select class="form-select form-select-sm" style="max-width:280px"
+                    onchange="location.href='{% url 'chips:leitura' %}?lote='+this.value">
+                {% for l in lotes %}
+                <option value="{{ l.id }}" {% if l.id == lote.id %}selected{% endif %}>{{ l.nome }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNovoLote">
+                <i class="bi bi-plus-lg"></i> Novo lote
+            </button>
+            <a href="{% url 'chips:revisao' lote.id %}" id="btn-finalizar" class="btn btn-sm btn-primary ms-auto">
+                Finalizar sessão <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        {% include "chips/_contadores.html" %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Coluna da câmera IP -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div id="camera-preview-container" class="mb-2">
+                    <div class="camera-frame">
+                        <!-- Preview ao vivo: snapshot da câmera IP via proxy (atualizado por JS) -->
+                        <img id="camera-preview" alt="Câmera ao vivo">
+                        <!-- Guia de enquadramento -->
+                        <div id="camera-overlay"></div>
+                        <!-- Overlay de status (azul/verde/vermelho) -->
+                        <div id="camera-overlay-status" class="camera-overlay"></div>
+                        <!-- Mensagem quando a câmera não responde -->
+                        <div id="camera-offline" class="text-muted small" style="display:none">
+                            <i class="bi bi-camera-video-off fs-3 d-block mb-1"></i> Câmera indisponível
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Captura (manual). A automática usa este mesmo endpoint via JS. -->
+                <button type="button" id="btn-capturar" class="btn btn-success btn-lg w-100"
+                        hx-post="{% url 'chips:leitura_capturar_camera' %}"
+                        hx-vals='{"lote": "{{ lote.id }}"}'
+                        hx-target="#fila" hx-swap="outerHTML" hx-indicator="#loading-indicator">
+                    <i class="bi bi-camera"></i> Capturar
+                </button>
+
+                <div class="form-check form-switch d-inline-flex align-items-center gap-2 mt-2">
+                    <input class="form-check-input" type="checkbox" id="toggle-auto" checked>
+                    <label class="form-check-label small text-muted" for="toggle-auto">Captura automática ao detectar chip</label>
+                </div>
+
+                {% include "chips/_status_panel.html" %}
+                <div id="camera-erro" class="small text-danger mt-2" style="display:none"></div>
+            </div>
+        </div>
+
+        {% if request.user.is_staff %}
+        <!-- Calibração da sensibilidade (staff): % de mudança em tempo real -->
+        <div class="card shadow-sm mt-3" id="calib-card">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold"><i class="bi bi-sliders"></i> Sensibilidade (tempo real)</span>
+                    <span class="small text-muted" id="calib-estado">—</span>
+                </div>
+                <div class="calib-bar mt-2">
+                    <div class="calib-fill" id="calib-fill"></div>
+                    <div class="calib-mark calib-mark-mov" id="calib-mark-mov" title="Detecta o chip (acima)"></div>
+                </div>
+                <div class="small text-muted mt-1">mudança atual: <b id="calib-val" class="mono">0,0%</b></div>
+
+                <label class="form-label small mb-0 mt-2">Detecta o chip acima de <b id="lbl-mov" class="mono"></b></label>
+                <input type="range" class="form-range" id="sl-mov" min="2" max="40" step="1">
+                <label class="form-label small mb-0">Tempo até capturar <b id="lbl-delay" class="mono"></b></label>
+                <input type="range" class="form-range" id="sl-delay" min="1" max="10" step="1">
+                <label class="form-label small mb-0">Sensibilidade por pixel <b id="lbl-pixel" class="mono"></b></label>
+                <input type="range" class="form-range" id="sl-pixel" min="20" max="120" step="5">
+
+                <div class="text-muted mt-1" style="font-size:.72rem">
+                    Ao detectar o chip (pico acima do marcador <span style="color:var(--gold)">dourado</span>),
+                    a foto é tirada automaticamente após o tempo configurado. Ajustes valem na hora (não são salvos).
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Coluna da fila -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {% include "chips/_fila.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% include "chips/_modal_novo_lote.html" %}
+{% endblock %}
+
+{% block scripts %}
+{% if lotes %}
+<script>
+(function () {
+    var preview   = document.getElementById('camera-preview');
+    var overlay   = document.getElementById('camera-overlay-status');
+    var offline   = document.getElementById('camera-offline');
+    var erroBox   = document.getElementById('camera-erro');
+    var btn       = document.getElementById('btn-capturar');
+    var toggle    = document.getElementById('toggle-auto');
+    var btnFin    = document.getElementById('btn-finalizar');
+    var PREVIEW_URL = '{% url "chips:camera_preview" %}';
+
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    var frameAnterior = null;
+    var contagem = null;            // timer das contagens regressivas
+    var processando = false;        // captura em andamento (OCR no servidor)
+    var ativo = true;               // sessão ativa (para o polling ao finalizar)
+    var pollTimer = null;
+    // Máquina de estados da captura automática:
+    //   'armado'      → pronto; aguarda o chip ser posicionado
+    //   'contagem'    → chip detectado, contando p/ a 1ª leitura
+    //   'par'         → entre a 1ª e a 2ª leitura (validação)
+    //   'saida'       → após o par, aguarda você RETIRAR o chip (ignora a mão)
+    //   'estabilizar' → mão saiu; aguarda a cena ficar vazia/estável p/ re-armar
+    var fase = 'armado';
+    var framesEstaveis = 0;
+
+    var INTERVALO_MS = 600;    // de quanto em quanto tempo busca um frame
+    // Detecção: ao notar o chip, espera N s e faz a 1ª leitura; depois, SEM nova
+    // detecção, faz a 2ª leitura do MESMO chip (validação). Após o par, só re-arma
+    // quando o chip é retirado e a cena fica estável (não dispara com a mão).
+    var PIXEL_DIF       = 60;    // diferença mínima por pixel p/ contar como mudança
+    var LIMIAR_MOV      = 0.14;  // 14% dos pixels mudaram = movimento (chip/mão)
+    var LIMIAR_ESTAVEL  = 0.05;  // < 5% = cena parada (vazia/estável)
+    var FRAMES_REARM    = 2;     // frames estáveis seguidos p/ re-armar após retirar
+    var CAPTURA_DELAY_S = 5;     // segundos entre detectar o chip e a 1ª leitura
+    var INTERVALO_2A_S  = 2;     // segundos entre a 1ª e a 2ª leitura (sem nova detecção)
+    // Ignora as faixas com o relógio (topo) e a etiqueta "Camera 01" (base).
+    var CROP_TOPO = 0.12, CROP_BASE = 0.08;
+
+    function setOverlay(classe, texto) {
+        if (!overlay) return;
+        overlay.className = 'camera-overlay ' + (classe || '');
+        overlay.textContent = texto || '';
+    }
+
+    // ---- Polling do preview (auto-refresh do snapshot, mesma origem) ----
+    function agendarProximo() {
+        if (!ativo) return;
+        pollTimer = setTimeout(carregarFrame, INTERVALO_MS);
+    }
+    function carregarFrame() {
+        if (!ativo) return;
+        var img = new Image();
+        img.onload = function () {
+            if (offline) offline.style.display = 'none';
+            if (erroBox) erroBox.style.display = 'none';
+            preview.src = img.src;
+            analisar(img);
+            agendarProximo();
+        };
+        img.onerror = function () {
+            if (offline) offline.style.display = '';
+            if (erroBox) { erroBox.textContent = 'Câmera IP indisponível. Verifique a conexão.'; erroBox.style.display = 'block'; }
+            frameAnterior = null;
+            agendarProximo();
+        };
+        img.src = PREVIEW_URL + '?t=' + Date.now();
+    }
+
+    // ---- Detecção automática: detecta o chip → conta N s → captura ----
+    // A % de mudança é calculada todo frame e mostrada em tempo real, e
+    // no painel de calibração. Ao notar o chip (mudança > LIMIAR_MOV), inicia a
+    // contagem regressiva; ao zerar, captura.
+    function analisar(img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        var sy = Math.round(h * CROP_TOPO);
+        var sh = Math.round(h * (1 - CROP_TOPO - CROP_BASE));  // recorta o centro
+        var cw = 160, chh = Math.max(1, Math.round(sh * 160 / w));
+        canvas.width = cw; canvas.height = chh;
+        ctx.drawImage(img, 0, sy, w, sh, 0, 0, cw, chh);
+        var atual = ctx.getImageData(0, 0, cw, chh);
+        var mudanca = frameAnterior ? calcularMudanca(frameAnterior.data, atual.data) : 0;
+        frameAnterior = atual;
+        atualizarCalib(mudanca);  // leitura em tempo real (painel staff)
+
+        if (!toggle || !toggle.checked) { cancelarContagem(); fase = 'armado'; setEstado('off'); return; }
+        if (processando) { setEstado('processando'); return; }
+
+        if (fase === 'contagem' || fase === 'par') {
+            setEstado('contando'); return;       // contagens em curso (geridas por timers)
+        }
+        if (fase === 'saida') {
+            setEstado('saida');                  // aguarda a RETIRADA do chip (ignora a mão)
+            if (mudanca > LIMIAR_MOV) { fase = 'estabilizar'; framesEstaveis = 0; }
+            return;
+        }
+        if (fase === 'estabilizar') {
+            setEstado('estabilizar');            // mão saiu → aguarda cena vazia/estável
+            if (mudanca < LIMIAR_ESTAVEL) {
+                framesEstaveis++;
+                if (framesEstaveis >= FRAMES_REARM) { fase = 'armado'; setOverlay('', ''); }
+            } else {
+                framesEstaveis = 0;
+            }
+            return;
+        }
+        // fase 'armado': aguarda o chip ser posicionado
+        if (mudanca > LIMIAR_MOV) {
+            iniciarContagem();
+        } else {
+            setEstado('parado');
+        }
+    }
+
+    // Chip detectado → conta CAPTURA_DELAY_S segundos e então faz a 1ª leitura.
+    function iniciarContagem() {
+        if (processando) return;
+        fase = 'contagem';
+        var restante = CAPTURA_DELAY_S;
+        setEstado('contando');
+        setOverlay('overlay-azul', 'Capturando em ' + restante + 's…');
+        contagem = setInterval(function () {
+            restante--;
+            if (restante > 0) {
+                setOverlay('overlay-azul', 'Capturando em ' + restante + 's…');
+            } else {
+                cancelarContagem();
+                if (ativo) capturar();  // 1ª leitura; a 2ª é encadeada no afterSwap
+            }
+        }, 1000);
+    }
+    function cancelarContagem() {
+        if (contagem) { clearInterval(contagem); contagem = null; }
+    }
+
+    function calcularMudanca(a, b) {
+        var diferentes = 0, total = a.length / 4;
+        for (var i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > PIXEL_DIF) {
+                diferentes++;
+            }
+        }
+        return diferentes / total;
+    }
+
+    // ---- Painel de calibração (staff): % em tempo real + sliders ao vivo ----
+    var elFill = document.getElementById('calib-fill');
+    var elVal = document.getElementById('calib-val');
+    var elEstado = document.getElementById('calib-estado');
+    var BAR_MAX = 0.5;  // 50% de mudança = barra cheia
+
+    function atualizarCalib(m) {
+        if (elVal) elVal.textContent = (m * 100).toFixed(1).replace('.', ',') + '%';
+        if (elFill) elFill.style.width = Math.min(100, m / BAR_MAX * 100) + '%';
+    }
+    function setEstado(s) {
+        if (!elEstado) return;
+        var map = {
+            parado: ['Parado', 'text-muted'],
+            processando: ['Processando', 'text-primary'],
+            contando: ['Chip detectado…', 'text-info'],
+            saida: ['Retire o chip…', 'text-warning'],
+            estabilizar: ['Aguardando estabilizar…', 'text-secondary'],
+            off: ['Auto desligada', 'text-secondary'],
+        };
+        var c = map[s] || map.parado;
+        elEstado.textContent = c[0];
+        elEstado.className = 'small ' + c[1];
+    }
+    function posicionarMarcadores() {
+        var mm = document.getElementById('calib-mark-mov');
+        if (mm) mm.style.left = Math.min(100, LIMIAR_MOV / BAR_MAX * 100) + '%';
+    }
+    (function ligarSliders() {
+        var slMov = document.getElementById('sl-mov');
+        var slDelay = document.getElementById('sl-delay');
+        var slPixel = document.getElementById('sl-pixel');
+        if (!slMov) return;  // não-staff: painel ausente
+        var lblMov = document.getElementById('lbl-mov');
+        var lblDelay = document.getElementById('lbl-delay');
+        var lblPixel = document.getElementById('lbl-pixel');
+        function rotulos() {
+            lblMov.textContent = (LIMIAR_MOV * 100).toFixed(0) + '%';
+            lblDelay.textContent = CAPTURA_DELAY_S + 's';
+            lblPixel.textContent = PIXEL_DIF;
+        }
+        slMov.value = Math.round(LIMIAR_MOV * 100);
+        slDelay.value = CAPTURA_DELAY_S;
+        slPixel.value = PIXEL_DIF;
+        slMov.addEventListener('input', function () { LIMIAR_MOV = +this.value / 100; rotulos(); posicionarMarcadores(); });
+        slDelay.addEventListener('input', function () { CAPTURA_DELAY_S = +this.value; rotulos(); });
+        slPixel.addEventListener('input', function () { PIXEL_DIF = +this.value; rotulos(); });
+        rotulos(); posicionarMarcadores();
+    })();
+
+    function capturar() {
+        if (processando || !btn) return;
+        processando = true;
+        setOverlay('overlay-azul', 'Processando…');
+        btn.click();  // dispara o POST HTMX (mesma rota da captura IP)
+    }
+
+    // Captura manual também sinaliza "processando".
+    if (btn) btn.addEventListener('click', function () {
+        processando = true;
+        setOverlay('overlay-azul', 'Processando…');
+    });
+
+    // Resultado da captura (HTMX): atualiza overlay conforme o painel de status.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        processando = false;
+        cancelarContagem();
+        frameAnterior = null;  // reinicia a base do diff (cena mudou)
+        var panel = document.getElementById('status-panel');
+        var est = panel ? panel.getAttribute('data-estado') : '';
+        var qc = document.getElementById('quick-correct');
+        if (qc) { qc.focus(); qc.select(); }
+
+        // Só encadeia a 2ª leitura após uma CAPTURA (não em correção/remoção).
+        var d = e.detail || {};
+        var path = (d.requestConfig && d.requestConfig.path)
+                || (d.pathInfo && d.pathInfo.requestPath)
+                || (d.xhr && d.xhr.responseURL) || '';
+        var foiCaptura = path.indexOf('capturar-camera') !== -1;
+
+        if (foiCaptura && fase !== 'par') {
+            // 1ª leitura concluída → valida o MESMO chip com uma 2ª leitura em N s.
+            fase = 'par';
+            var rest = INTERVALO_2A_S;
+            setEstado('contando');
+            setOverlay('overlay-azul', '2ª leitura em ' + rest + 's…');
+            contagem = setInterval(function () {
+                rest--;
+                if (rest > 0) {
+                    setOverlay('overlay-azul', '2ª leitura em ' + rest + 's…');
+                } else {
+                    if (contagem) { clearInterval(contagem); contagem = null; }
+                    if (ativo) capturar();  // 2ª leitura (validação), sem nova detecção
+                }
+            }, 1000);
+            return;  // o feedback visual fica para o fim do par
+        }
+        if (foiCaptura && fase === 'par') {
+            // 2ª leitura concluída → aguarda você RETIRAR o chip antes de re-armar.
+            fase = 'saida';
+            framesEstaveis = 0;
+        }
+
+        // Feedback do resultado (após a 2ª leitura, ou em correção/remoção).
+        if (est === 'sucesso' || est === 'sucesso2') {
+            setOverlay('overlay-verde', 'Lido!');
+        } else if (est === 'erro') {
+            setOverlay('overlay-vermelho', 'Reposicione o chip');
+        }
+        clearTimeout(window._overlayTimer);
+        window._overlayTimer = setTimeout(function () { setOverlay('', ''); }, 1300);
+    });
+
+    // Finaliza a sessão: para o polling (o link já navega para a revisão).
+    function finalizar() { ativo = false; if (pollTimer) clearTimeout(pollTimer); }
+    if (btnFin) btnFin.addEventListener('click', finalizar);
+    window.addEventListener('pagehide', finalizar);
+
+    // Atalhos: Espaço = capturar; Ctrl+N = novo lote.
+    document.addEventListener('keydown', function (ev) {
+        var emCampo = /^(INPUT|TEXTAREA|SELECT)$/.test((ev.target.tagName || ''));
+        if (ev.ctrlKey && (ev.key === 'n' || ev.key === 'N')) {
+            ev.preventDefault();
+            var m = document.getElementById('modalNovoLote');
+            if (m) new bootstrap.Modal(m).show();
+        } else if (ev.key === ' ' && !emCampo) {
+            ev.preventDefault();
+            if (!processando) capturar();
+        }
+    });
+
+    // Foca o nome ao abrir o modal de novo lote.
+    var modal = document.getElementById('modalNovoLote');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            var n = document.getElementById('novo-lote-nome');
+            if (n) n.focus();
+        });
+    }
+
+    carregarFrame();  // inicia o preview/detecção automaticamente
+})();
+</script>
+{% endif %}
+{% endblock %}

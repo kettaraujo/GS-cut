@@ -1,11 +1,13 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
 
 from .models import Log
 
+# A DataTable pagina no cliente; carregamos os registros mais recentes.
+LOG_LIMITE = 1000
 
-class LogListView(LoginRequiredMixin, ListView):
-    model = Log
-    template_name = "audit/log_list.html"
-    context_object_name = "logs"
-    paginate_by = 50
+
+@login_required
+def log_list(request):
+    logs = Log.objects.select_related("usuario").all()[:LOG_LIMITE]
+    return render(request, "audit/log_list.html", {"logs": logs, "limite": LOG_LIMITE})

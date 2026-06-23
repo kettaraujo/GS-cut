@@ -21,6 +21,22 @@ def criar_lote(nome, usuario):
     return lote
 
 
+def renomear_lote(lote, novo_nome, usuario):
+    """Renomeia o lote (3–100 caracteres) e registra a alteração."""
+    novo_nome = (novo_nome or "").strip()
+    if len(novo_nome) < 3:
+        raise ValidationError("O nome deve ter pelo menos 3 caracteres.")
+    if len(novo_nome) > 100:
+        raise ValidationError("O nome deve ter no máximo 100 caracteres.")
+
+    anterior = lote.nome
+    lote.nome = novo_nome
+    lote.save(update_fields=["nome"])
+    log_action(Log.Acao.RENOMEAR_LOTE, usuario=usuario,
+               resultado={"lote_id": str(lote.id), "anterior": anterior, "novo": novo_nome})
+    return lote
+
+
 @transaction.atomic
 def aprovar_lote(lote, usuario):
     """Aprova o lote internamente (sem desligamento — fora do escopo do MVP)."""
@@ -50,4 +66,31 @@ def cancelar_lote(lote, usuario):
     lote.save(update_fields=["status"])
     log_action(Log.Acao.CANCELAR_LOTE, usuario=usuario,
                resultado={"lote_id": str(lote.id)})
+    return lote
+
+
+# Status finais que NÃO podem ser excluídos (SPEC4010) — preservam histórico/
+# auditoria. Só lotes editáveis (aberto/em_revisao) podem ser excluídos.
+EXCLUIVEIS = {Lote.Status.ABERTO, Lote.Status.EM_REVISAO}
+
+
+@transaction.atomic
+def excluir_lote(lote, usuario):
+    """Soft-delete do lote e de todos os chips filhos (SPEC4012).
+
+    Permitido apenas para lotes em ``aberto`` ou ``em_revisao``. Lotes
+    aprovados, exportados ou cancelados são preservados para auditoria.
+    """
+    if lote.status not in EXCLUIVEIS:
+        raise ValidationError(
+            "Lotes aprovados, exportados ou cancelados não podem ser excluídos."
+        )
+
+    n_chips = lote.chips.filter(is_active=True).count()
+    lote.chips.filter(is_active=True).update(is_active=False)
+    lote.is_active = False
+    lote.save(update_fields=["is_active"])
+
+    log_action(Log.Acao.EXCLUIR_LOTE, usuario=usuario,
+               resultado={"lote_id": str(lote.id), "nome": lote.nome, "chips": n_chips})
     return lote

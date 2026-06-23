@@ -1,0 +1,129 @@
+/* ============================================================================
+   ChipCut Design System — Foundations
+   Grupo GoldenSat · internal ICCID reading tool
+   Derived from chipcut/templates/base.html + static/css/app.css
+   Stack of record: Bootstrap 5.3 + Bootstrap Icons + Inter + HTMX/Alpine/DataTables
+   ----------------------------------------------------------------------------
+   ChipCut is a thin GoldenSat theme over stock Bootstrap 5.3. These tokens
+   mirror Bootstrap's defaults (so recreations match the real app exactly) and
+   add the two GoldenSat brand colors used in the sidebar.
+   ============================================================================ */
+
+:root {
+    /* ---- Brand: GoldenSat ------------------------------------------------ */
+    --gs-gold:        #efc319;   /* primary brand gold — from the eagle logo  */
+    --gs-gold-700:    #c79e0f;   /* deeper gold (gradients / shield shadow)   */
+    --gs-black:       #111111;   /* logo black (eagle / outline)              */
+    --gs-navy:        #1a2332;   /* sidebar background — "Navy GoldenSat"     */
+    --gs-navy-700:    #141b27;   /* deeper navy (offcanvas header / hovers)   */
+    --gs-amber:       #d4a574;   /* warm amber accent / sidebar text          */
+    --gs-amber-soft:  rgba(212, 165, 116, 0.15); /* active nav background     */
+
+    /* ---- Bootstrap 5.3 theme colors (used verbatim by the app) ----------- */
+    --cc-primary:     #0d6efd;   /* actions, links, charts                    */
+    --cc-primary-700: #0a58ca;   /* primary :hover                            */
+    --cc-success:     #198754;   /* read OK, approved, export                 */
+    --cc-warning:     #ffc107;   /* awaiting approval, 2nd attempt            */
+    --cc-danger:      #dc3545;   /* read error, destructive                   */
+    --cc-info:        #0dcaf0;   /* batch approved status                     */
+    --cc-secondary:   #6c757d;   /* muted / pending / cancelled               */
+
+    /* ---- Neutrals / greys (Bootstrap gray scale) ------------------------- */
+    --cc-white:       #ffffff;
+    --cc-bg:          #f8f9fa;   /* body — bg-light, the default app canvas   */
+    --cc-gray-100:    #f8f9fa;
+    --cc-gray-200:    #e9ecef;
+    --cc-gray-300:    #dee2e6;   /* borders, table lines, thumb border        */
+    --cc-gray-400:    #ced4da;   /* input borders                             */
+    --cc-gray-500:    #adb5bd;   /* dashed capture border, disabled icons     */
+    --cc-gray-600:    #6c757d;   /* text-muted                                */
+    --cc-gray-700:    #495057;
+    --cc-gray-800:    #343a40;   /* bg-dark mobile topbar                     */
+    --cc-gray-900:    #212529;   /* body text                                 */
+
+    /* Sidebar-specific text tints (from app.css) */
+    --cc-sidebar-link:        #cbd3df;   /* idle nav link                     */
+    --cc-sidebar-link-hover:  #ffffff;   /* hover nav link                    */
+    --cc-sidebar-disabled:    #6c7a91;   /* disabled nav link                 */
+
+    /* ---- Semantic foreground -------------------------------------------- */
+    --fg1: var(--cc-gray-900);   /* primary text                             */
+    --fg2: var(--cc-gray-600);   /* secondary / muted text                   */
+    --fg-on-dark: var(--cc-amber, var(--gs-amber)); /* brand text on navy    */
+
+    /* ============================ TYPE ================================== */
+    /* Single family. Inter for everything; system mono for ICCID numbers.   */
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --fw-regular: 400;
+    --fw-medium:  500;
+    --fw-semibold:600;
+    --fw-bold:    700;
+
+    /* Bootstrap type scale (rem on 16px root) */
+    --fs-display: 2rem;     /* 32px — KPI / metric values (fw 700)           */
+    --fs-h1:      2.5rem;   /* 40px — .h1 (rarely used)                      */
+    --fs-h3:      1.75rem;  /* 28px — page titles use .h3                    */
+    --fs-h4:      1.5rem;   /* 24px — card / lote titles use .h4             */
+    --fs-h6:      1rem;     /* 16px — card section headers use .h6 muted     */
+    --fs-body:    1rem;     /* 16px — base                                   */
+    --fs-sm:      0.875rem; /* 14px — .small, table-sm, meta                 */
+    --fs-xs:      0.75rem;  /* 12px — badges                                 */
+
+    --lh-tight:   1.1;
+    --lh-base:    1.5;
+
+    /* ---- Radii (Bootstrap defaults) ------------------------------------- */
+    --radius-sm:  0.25rem;  /* 4px  — badges, sm buttons                     */
+    --radius:     0.375rem; /* 6px  — buttons, inputs, chip thumbs           */
+    --radius-lg:  0.5rem;   /* 8px  — cards, capture preview                 */
+    --radius-pill: 50rem;   /* pills                                         */
+
+    /* ---- Elevation (Bootstrap shadows) ---------------------------------- */
+    --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);  /* .shadow-sm — every card */
+    --shadow:    0 .5rem 1rem rgba(0,0,0,.15);       /* .shadow — modals        */
+    --shadow-lg: 0 1rem 3rem rgba(0,0,0,.175);
+
+    /* ---- Spacing (Bootstrap spacer = 1rem; .g-3 = 1rem gutters) --------- */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 1rem;
+    --space-4: 1.5rem;
+    --space-5: 3rem;
+
+    /* ---- Layout --------------------------------------------------------- */
+    --sidebar-w: 250px;
+}
+
+/* ============================================================================
+   Base element styling — semantic, mirrors how the app renders
+   ============================================================================ */
+body {
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    line-height: var(--lh-base);
+    color: var(--fg1);
+    background: var(--cc-bg);
+}
+
+h1, .h1 { font-size: var(--fs-h1); font-weight: var(--fw-semibold); line-height: var(--lh-tight); }
+h3, .h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(--lh-tight); }
+h4, .h4 { font-size: var(--fs-h4); font-weight: var(--fw-semibold); }
+h6, .h6 { font-size: var(--fs-h6); font-weight: var(--fw-semibold); }
+
+.text-muted { color: var(--fg2) !important; }
+.small, small { font-size: var(--fs-sm); }
+
+/* ICCID numbers — always tabular monospace with a touch of tracking */
+.iccid {
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+}
+
+/* KPI / metric values */
+.kpi-value, .metric-value {
+    font-size: var(--fs-display);
+    font-weight: var(--fw-bold);
+    line-height: 1;
+}

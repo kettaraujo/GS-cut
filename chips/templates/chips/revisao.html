@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load chipcut_tags static %}
+
+{% block title %}Revisão — {{ lote.nome }} — ChipCut{% endblock %}
+
+{% block content %}
+<a href="{% url 'chips:leitura' %}?lote={{ lote.id }}" class="text-decoration-none small">
+    <i class="bi bi-arrow-left"></i> Voltar à leitura
+</a>
+
+<!-- Cabeçalho da revisão -->
+<div class="card shadow-sm my-3">
+    <div class="card-body">
+        <h1 class="h4 mb-1"><i class="bi bi-clipboard-check text-primary"></i> Revisão do lote</h1>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <strong>{{ lote.nome }}</strong>
+            {% status_badge lote.status "lote" %}
+        </div>
+        <div class="d-flex flex-wrap gap-3 small mt-2">
+            <span><strong class="fs-6">{{ contadores.total }}</strong> chips capturados</span>
+            <span class="text-success"><strong class="fs-6">{{ contadores.sucesso }}</strong> ✓</span>
+            <span class="text-danger"><strong class="fs-6">{{ contadores.erro }}</strong> ✗</span>
+            <span class="text-muted">Taxa: <strong>{{ contadores.taxa }}%</strong></span>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de chips -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        {% if chips %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle chipcut-datatable" style="width:100%"
+                   data-page-length="30" data-order-col="0" data-order-dir="asc">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Imagem</th><th>ICCID</th>
+                        <th class="text-center">Tentativas</th><th>Status</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chip in chips %}
+                    <tr>
+                        <td>{{ chip.sequencia }}</td>
+                        <td>
+                            {% if chip.imagem_url %}
+                            <img src="{{ chip.imagem_url }}" class="chip-thumb cursor-pointer" alt="chip"
+                                 style="width:40px;height:40px" loading="lazy"
+                                 onclick="verImagemChip('{{ chip.imagem_url }}')"
+                                 onerror="this.src='{% static 'img/chip-placeholder.png' %}'">
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            <span class="iccid cursor-pointer" title="Clique para copiar"
+                                  onclick="chipcutCopy(this, '{{ chip.iccid }}')">{{ chip.iccid|default:"(erro)" }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if chip.tentativas > 1 %}<span class="badge text-bg-warning">2ª</span>
+                            {% else %}<span class="badge text-bg-success">1ª</span>{% endif %}
+                        </td>
+                        <td>{% status_badge chip.status_leitura "leitura" %}</td>
+                        <td class="text-end">
+                            <form method="post" action="{% url 'chips:remover' chip.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'chips:revisao' lote.id %}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir chip">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-3"></i>
+            <p class="mt-2 mb-0">Nenhum chip capturado nesta sessão.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Ações da revisão (SPEC4005) -->
+<div class="d-flex flex-wrap justify-content-between gap-2">
+    <a href="{% url 'chips:leitura' %}?lote={{ lote.id }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar e continuar
+    </a>
+    <form method="post" action="{% url 'chips:revisao_confirmar' lote.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success" {% if not chips %}disabled{% endif %}>
+            <i class="bi bi-check2-circle"></i> Confirmar lote
+        </button>
+    </form>
+</div>
+{% endblock %}

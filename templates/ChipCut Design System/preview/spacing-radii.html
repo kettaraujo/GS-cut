@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" -->
+<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="../colors_and_type.css" rel="stylesheet">
+<style>
+  body{margin:0;padding:24px;background:#fff;font-family:var(--font-sans);color:var(--fg1);}
+  .lbl{font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;font-weight:600;}
+  .row{display:flex;gap:22px;align-items:flex-end;}
+  .it{text-align:center;}
+  .box{width:84px;height:64px;background:#e9ecef;border:1px solid #ced4da;}
+  .nm{font-weight:600;font-size:12px;margin-top:8px;}
+  .px{font-family:var(--font-mono);font-size:11px;color:var(--fg2);}
+</style></head>
+<body>
+  <div class="lbl">Corner radii</div>
+  <div class="row">
+    <div class="it"><div class="box" style="border-radius:4px;"></div><div class="nm">sm</div><div class="px">4px · badge</div></div>
+    <div class="it"><div class="box" style="border-radius:6px;"></div><div class="nm">base</div><div class="px">6px · btn / input</div></div>
+    <div class="it"><div class="box" style="border-radius:8px;"></div><div class="nm">lg</div><div class="px">8px · card</div></div>
+    <div class="it"><div class="box" style="border-radius:10px;border-style:dashed;border-color:#adb5bd;border-width:2px;"></div><div class="nm">capture</div><div class="px">10px · dashed</div></div>
+    <div class="it"><div class="box" style="border-radius:50rem;width:64px;"></div><div class="nm">pill</div><div class="px">50rem</div></div>
+  </div>
+</body></html>

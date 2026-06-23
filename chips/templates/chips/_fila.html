@@ -1,0 +1,40 @@
+{% load chipcut_tags static %}
+<div id="fila">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 text-muted mb-0">Fila desta sessão</h2>
+        {% if lote %}<a href="{% url 'lotes:review' lote.id %}" class="small text-decoration-none">Ver lote completo →</a>{% endif %}
+    </div>
+    {% if fila %}
+    <!-- Form oculto para o atalho Ctrl+Z (remove o último chip lido) -->
+    <form id="form-remover-ultimo" class="d-none" hx-post="{% url 'chips:leitura_remover' fila.0.id %}"
+          hx-target="#fila" hx-swap="outerHTML">{% csrf_token %}</form>
+    <ul class="list-group">
+        {% for chip in fila %}
+        <li class="list-group-item d-flex align-items-center gap-2 py-2">
+            {% if chip.imagem_url %}
+            <img src="{{ chip.imagem_url }}" width="32" height="32"
+                 class="rounded object-fit-cover flex-shrink-0 cursor-pointer" alt="chip" loading="lazy"
+                 onclick="verImagemChip('{{ chip.imagem_url }}')"
+                 onerror="this.src='{% static 'img/chip-placeholder.png' %}'">
+            {% else %}
+            <span class="d-inline-flex align-items-center justify-content-center bg-light rounded text-muted flex-shrink-0"
+                  style="width:32px;height:32px"><i class="bi bi-image"></i></span>
+            {% endif %}
+            {% if chip.status_leitura == 'sucesso' and chip.tentativas > 1 %}<span class="text-warning" title="Sucesso 2ª">⚠</span>
+            {% elif chip.status_leitura == 'sucesso' %}<span class="text-success" title="Sucesso">✓</span>
+            {% else %}<span class="text-danger" title="Erro">✗</span>{% endif %}
+            <span class="iccid small flex-grow-1">{{ chip.iccid|default:'—' }}</span>
+            {% if chip.tentativas > 1 %}<span class="badge text-bg-warning">2ª</span>
+            {% else %}<span class="badge text-bg-success">1ª</span>{% endif %}
+            <span class="text-muted small">{{ chip.data_leitura|date:'H:i:s' }}</span>
+            <a href="{% url 'lotes:review' lote.id %}" class="text-muted" title="Corrigir na revisão"><i class="bi bi-pencil"></i></a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="text-center py-4 text-muted">
+        <i class="bi bi-inbox fs-3"></i>
+        <p class="mt-2 mb-0">Nenhuma leitura nesta sessão ainda.</p>
+    </div>
+    {% endif %}
+</div>

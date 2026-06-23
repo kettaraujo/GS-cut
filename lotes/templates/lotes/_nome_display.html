@@ -1,0 +1,4 @@
+<span class="lote-nome cursor-pointer" title="Clique para renomear"
+      hx-get="{% url 'lotes:renomear' lote.id %}?edit=1" hx-target="this" hx-swap="outerHTML">
+    {{ lote.nome }} <i class="bi bi-pencil-fill text-muted small ms-1"></i>
+</span>

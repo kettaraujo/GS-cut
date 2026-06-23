@@ -7,6 +7,9 @@ from lotes.models import Lote
 
 
 def chip_imagem_path(instance, filename):
+    # Mantido para compatibilidade com a migration 0001 (campos antigos
+    # ImageField). As imagens agora vão para o Supabase Storage — ver
+    # core/services/supabase_storage.py e os campos URL abaixo.
     return f"chips/{instance.lote_id}/{filename}"
 
 
@@ -27,9 +30,17 @@ class Chip(models.Model):
     lote = models.ForeignKey(Lote, on_delete=models.CASCADE, related_name="chips")
     sequencia = models.PositiveIntegerField(default=1)
     iccid = models.CharField(max_length=22, blank=True)
-    imagem = models.ImageField(upload_to=chip_imagem_path)
-    imagem_tentativa_2 = models.ImageField(
-        upload_to=chip_imagem_path, null=True, blank=True
+    imagem_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="URL pública da imagem no Supabase Storage",
+    )
+    imagem_tentativa_2_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="URL da 2ª tentativa no Supabase Storage",
     )
     tentativas = models.PositiveSmallIntegerField(default=1)
     status_leitura = models.CharField(

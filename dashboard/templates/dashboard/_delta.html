@@ -1,0 +1,5 @@
+{% if var is not None %}
+    {% if var > 0 %}<span class="ms-auto small fw-semibold text-success">+{{ var }}%</span>
+    {% elif var < 0 %}<span class="ms-auto small fw-semibold text-danger">{{ var }}%</span>
+    {% else %}<span class="ms-auto small text-muted">0%</span>{% endif %}
+{% endif %}

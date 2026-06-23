@@ -15,9 +15,25 @@ db.sqlite3-journal
 
 # Ambiente / segredos
 .env
+*.env
+!.env.example
+
+# Configuração local do Claude Code (não versionar)
+.claude/settings.local.json
 
 # Editores
 .vscode/
 .idea/
 *.swp
 .DS_Store
+
+# Certificados de dev (HTTPS local para a câmera)
+certs/
+*.pem
+
+# Executáveis / binários grandes
+cloudflared.exe
+*.exe
+
+# Logs
+*.log

@@ -1,43 +1,131 @@
 {% extends "base.html" %}
+{% load chipcut_tags %}
 
-{% block title %}Lotes — ChipCut{% endblock %}
+{% block title %}Lotes — GS Cut{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">Lotes</h1>
-    <a href="{% url 'lotes:create' %}" class="btn btn-primary">+ Novo lote</a>
-</div>
+<div x-data="lotesPage()">
 
-<div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0 align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nome</th>
-                    <th>Status</th>
-                    <th class="text-center">Chips</th>
-                    <th>Criado em</th>
-                    <th>Operador</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lote in lotes %}
-                <tr>
-                    <td>{{ lote.nome }}</td>
-                    <td><span class="badge text-bg-secondary">{{ lote.get_status_display }}</span></td>
-                    <td class="text-center">{{ lote.quantidade }}</td>
-                    <td>{{ lote.data_criacao|date:"d/m/Y H:i" }}</td>
-                    <td>{{ lote.usuario|default:"—" }}</td>
-                    <td class="text-end">
-                        <a href="{% url 'lotes:review' lote.id %}" class="btn btn-sm btn-outline-primary">Abrir</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">Nenhum lote ainda. Crie o primeiro.</td></tr>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0"><i class="bi bi-collection text-primary"></i> Lotes</h1>
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm" style="width:220px">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" placeholder="Buscar por nome…" x-model="busca">
+            </div>
+            <a href="{% url 'exports:todos_excel' %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-excel"></i> Exportar todos
+            </a>
+            <a href="{% url 'lotes:create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Novo lote</a>
+        </div>
+    </div>
+
+    {# Abas (spec5) — alinhadas à direita, mesmo padrão do Board da Sprint do DevDesk #}
+    <div class="lotes-tabs justify-content-end">
+        <a href="?aba=em_revisao" class="aba-lote"
+           :class="abaAtiva === 'em_revisao' ? 'aba-ativa aba-amarela' : 'aba-inativa'"
+           @click.prevent="setAba('em_revisao')">
+            <i class="bi bi-eye me-1"></i> Em Revisão
+            {% if count_em_revisao %}<span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">{{ count_em_revisao }}</span>{% endif %}
+        </a>
+        <a href="?aba=em_andamento" class="aba-lote"
+           :class="abaAtiva === 'em_andamento' ? 'aba-ativa aba-azul' : 'aba-inativa'"
+           @click.prevent="setAba('em_andamento')">
+            <i class="bi bi-arrow-repeat me-1"></i> Em Andamento
+            {% if count_em_andamento %}<span class="badge bg-primary ms-1" style="font-size:.65rem">{{ count_em_andamento }}</span>{% endif %}
+        </a>
+        <a href="?aba=aprovados" class="aba-lote"
+           :class="abaAtiva === 'aprovados' ? 'aba-ativa aba-verde' : 'aba-inativa'"
+           @click.prevent="setAba('aprovados')">
+            <i class="bi bi-check-circle me-1"></i> Aprovados
+            {% if count_aprovados %}<span class="badge bg-success ms-1" style="font-size:.65rem">{{ count_aprovados }}</span>{% endif %}
+        </a>
+    </div>
+
+    <div class="lotes-content">
+        {% for secao in secoes %}
+        <div x-show="abaAtiva === '{{ secao.aba }}'" x-cloak>
+            <p class="text-muted small mb-3">{{ secao.subtitulo }}</p>
+            {% if secao.lotes %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                {% for lote in secao.lotes %}
+                    {% include "lotes/_card_lote.html" %}
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 mb-3 d-block" style="opacity:.4"></i>
+                {% if secao.aba == 'em_revisao' %}
+                    <p class="mb-0">Nenhum lote aguardando revisão.</p>
+                {% elif secao.aba == 'em_andamento' %}
+                    <p class="mb-0">Nenhum lote em andamento.</p>
+                {% else %}
+                    <p class="mb-0">Nenhum lote aprovado no momento.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        {# Histórico (accordion fechado) — fora das 3 abas (spec5 §8) #}
+        <div class="accordion mt-4" id="accordionHistorico">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#colHistorico" aria-expanded="false">
+                        <span class="text-secondary me-2">●</span> Histórico
+                        <span class="badge text-bg-secondary ms-2">{{ historico|length }}</span>
+                        <span class="text-muted small ms-2">Lotes já finalizados. Disponíveis apenas para consulta.</span>
+                    </button>
+                </h2>
+                <div id="colHistorico" class="accordion-collapse collapse" data-bs-parent="#accordionHistorico">
+                    <div class="accordion-body">
+                        {% include "lotes/_historico_tabela.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('alpine:init', function () {
+        Alpine.data('lotesPage', function () {
+            return {
+                busca: '',
+                valid: ['em_revisao', 'em_andamento', 'aprovados'],
+                abaAtiva: '{{ aba_ativa }}',
+                init() {
+                    // A aba ativa vem da URL (?aba=); valor inválido cai para a padrão.
+                    var p = new URLSearchParams(window.location.search).get('aba');
+                    this.abaAtiva = this.valid.indexOf(p) !== -1 ? p : 'em_revisao';
+                    // Botão voltar/avançar do navegador mantém a aba coerente com a URL.
+                    window.addEventListener('popstate', () => {
+                        var q = new URLSearchParams(window.location.search).get('aba');
+                        this.abaAtiva = this.valid.indexOf(q) !== -1 ? q : 'em_revisao';
+                    });
+                },
+                setAba(aba) {
+                    this.abaAtiva = aba;
+                    var url = new URL(window.location);
+                    url.searchParams.set('aba', aba);
+                    history.pushState({ aba: aba }, '', url);
+                },
+                nomeMatch(n) {
+                    return n.toLowerCase().includes(this.busca.toLowerCase());
+                },
+            };
+        });
+    });
+
+    // Recalcula a largura das colunas da DataTable do histórico ao abrir o accordion
+    // (DataTables inicializa escondido e calcula errado).
+    document.getElementById('colHistorico').addEventListener('shown.bs.collapse', function () {
+        if (window.$ && $.fn.dataTable) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }
+    });
+</script>
 {% endblock %}

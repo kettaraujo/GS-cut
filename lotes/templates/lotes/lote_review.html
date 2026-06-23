@@ -1,112 +1,108 @@
 {% extends "base.html" %}
+{% load chipcut_tags %}
 
 {% block title %}{{ lote.nome }} — ChipCut{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
-        <a href="{% url 'lotes:list' %}" class="text-decoration-none small">&larr; Lotes</a>
-        <h1 class="h3 mb-0">{{ lote.nome }}</h1>
-    </div>
-    <div>
-        <span class="badge text-bg-secondary fs-6">{{ lote.get_status_display }}</span>
-        <span class="text-muted ms-2">{{ lote.quantidade }} chip(s)</span>
+<a href="{% url 'lotes:list' %}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Lotes</a>
+
+<!-- Header do lote -->
+<div class="card shadow-sm my-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h1 class="h4 mb-1">{% include "lotes/_nome_display.html" %}</h1>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                {% status_badge lote.status "lote" %}
+                <span class="text-muted small">{{ lote.quantidade }} chip(s)</span>
+            </div>
+            <div class="text-muted small mt-2">
+                <i class="bi bi-person"></i> Criado por {{ lote.usuario.username|default:"—" }}
+                · <i class="bi bi-calendar3"></i> {{ lote.data_criacao|date:"d/m/Y H:i" }}
+                {% if lote.aprovado_por %} · <i class="bi bi-check-circle"></i> Aprovado por {{ lote.aprovado_por.username }}{% endif %}
+            </div>
+        </div>
+
+        <!-- Botões condicionais ao status (spec 5.4) -->
+        <div class="d-flex flex-wrap gap-2" x-data="{ excluir: false, nomeConfirm: '' }">
+            {% if lote.editavel %}
+            <a href="{% url 'chips:capture' lote.id %}" class="btn btn-success"><i class="bi bi-camera"></i> Ler chip</a>
+            <form method="post" action="{% url 'lotes:aprovar' lote.id %}"
+                  onsubmit="return confirm('Aprovar este lote? Os ICCIDs ficarão prontos para exportação.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" {% if not lote.quantidade %}disabled{% endif %}>
+                    <i class="bi bi-check2-circle"></i> Aprovar lote
+                </button>
+            </form>
+            <form method="post" action="{% url 'lotes:cancelar' lote.id %}"
+                  onsubmit="return confirm('Cancelar o lote inteiro? Nenhum chip será exportado.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar</button>
+            </form>
+            {% endif %}
+            {% if lote.quantidade %}
+            <a href="{% url 'exports:lote_excel' lote.id %}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+            {% endif %}
+
+            {# Excluir lote — só para aberto/em_revisao (SPEC4009/4010) #}
+            {% if lote.status == 'aberto' or lote.status == 'em_revisao' %}
+            <button type="button" class="btn btn-outline-danger" @click="excluir = true; nomeConfirm = ''">
+                <i class="bi bi-trash3"></i> Excluir lote
+            </button>
+
+            <!-- Modal de confirmação de exclusão (SPEC4011) -->
+            <div x-show="excluir" x-cloak class="modal-backdrop-custom" @click.self="excluir = false">
+                <div class="card shadow p-4" style="max-width:420px">
+                    <h6 class="mb-2"><i class="bi bi-exclamation-triangle text-danger"></i> Excluir lote “{{ lote.nome }}”?</h6>
+                    {% if lote.quantidade %}
+                    <p class="small mb-2">
+                        Este lote contém <strong>{{ lote.quantidade }} chip{{ lote.quantidade|pluralize }}</strong>.
+                        Todos serão excluídos junto com o lote. Esta ação não pode ser desfeita.
+                    </p>
+                    <label class="form-label small mb-1">Para confirmar, digite o nome do lote:</label>
+                    <input type="text" x-model="nomeConfirm" class="form-control form-control-sm mb-3"
+                           placeholder="{{ lote.nome }}" autocomplete="off">
+                    {% else %}
+                    <p class="small mb-3">Esta ação não pode ser desfeita.</p>
+                    {% endif %}
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary btn-sm" @click="excluir = false">Cancelar</button>
+                        <form method="post" action="{% url 'lotes:excluir' lote.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    {% if lote.quantidade %}:disabled="nomeConfirm !== '{{ lote.nome|escapejs }}'"{% endif %}>
+                                Excluir definitivamente
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-{% if lote.editavel %}
-<div class="mb-3 d-flex flex-wrap gap-2">
-    <a href="{% url 'chips:capture' lote.id %}" class="btn btn-success">📷 Ler chip</a>
-
-    <form method="post" action="{% url 'lotes:aprovar' lote.id %}"
-          onsubmit="return confirm('Aprovar este lote? Os ICCIDs ficarão prontos para exportação.');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary" {% if not lote.quantidade %}disabled{% endif %}>
-            ✔ Aprovar lote
+<!-- Abas internas por status de revisão (spec5 §2) -->
+<div x-data="gsTabs('aguardando', ['aguardando', 'aprovados', 'rejeitados'])">
+    <div class="gs-tabs justify-content-end">
+        {% for secao in secoes %}
+        <button type="button" class="aba-lote"
+                :class="abaAtiva === '{{ secao.aba }}' ? 'aba-ativa {{ secao.cor }}' : 'aba-inativa'"
+                @click="setAba('{{ secao.aba }}')">
+            <i class="bi {{ secao.icone }} me-1"></i> {{ secao.titulo }}
+            {% if secao.chips %}<span class="badge {{ secao.badge }} ms-1" style="font-size:.65rem">{{ secao.chips|length }}</span>{% endif %}
         </button>
-    </form>
+        {% endfor %}
+    </div>
 
-    <form method="post" action="{% url 'lotes:cancelar' lote.id %}"
-          onsubmit="return confirm('Cancelar o lote inteiro? Nenhum chip será exportado.');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-outline-danger">✖ Cancelar lote</button>
-    </form>
-</div>
-{% endif %}
-
-{% if lote.quantidade %}
-<div class="mb-3">
-    <a href="{% url 'exports:lote_excel' lote.id %}" class="btn btn-outline-success">⬇ Exportar Excel</a>
-</div>
-{% endif %}
-
-<div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-striped align-middle mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Imagem</th>
-                    <th>ICCID</th>
-                    <th class="text-center">Tentativas</th>
-                    <th>Leitura</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for chip in chips %}
-                <tr>
-                    <td>{{ chip.sequencia }}</td>
-                    <td>
-                        {% if chip.imagem %}
-                        <a href="{{ chip.imagem.url }}" target="_blank">
-                            <img src="{{ chip.imagem.url }}" class="chip-thumb" alt="chip">
-                        </a>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if lote.editavel %}
-                        <form method="post" action="{% url 'chips:corrigir' chip.id %}" class="d-flex gap-1">
-                            {% csrf_token %}
-                            <input type="text" name="iccid" value="{{ chip.iccid }}"
-                                   class="form-control form-control-sm iccid" style="max-width: 230px;">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Salvar</button>
-                        </form>
-                        {% else %}
-                        <span class="iccid">{{ chip.iccid|default:"—" }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {{ chip.tentativas }}
-                        {% if chip.corrigido_manualmente %}<span class="badge text-bg-info">corrigido</span>{% endif %}
-                    </td>
-                    <td>
-                        {% if chip.status_leitura == 'sucesso' %}
-                            <span class="badge text-bg-success">sucesso</span>
-                        {% elif chip.status_leitura == 'erro' %}
-                            <span class="badge text-bg-danger">erro</span>
-                        {% else %}
-                            <span class="badge text-bg-warning">pendente</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        {% if lote.editavel %}
-                        <form method="post" action="{% url 'chips:remover' chip.id %}"
-                              onsubmit="return confirm('Remover este chip do lote?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">
-                    Nenhum chip lido ainda.
-                    {% if lote.editavel %}<a href="{% url 'chips:capture' lote.id %}">Ler o primeiro</a>.{% endif %}
-                </td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="gs-tab-content">
+        {% for secao in secoes %}
+        <div x-show="abaAtiva === '{{ secao.aba }}'"{% if not forloop.first %} x-cloak{% endif %}>
+            {% include "lotes/_chip_tabela.html" %}
+        </div>
+        {% endfor %}
     </div>
 </div>
+
 {% endblock %}

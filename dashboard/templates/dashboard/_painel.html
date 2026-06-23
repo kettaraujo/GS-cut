@@ -1,0 +1,176 @@
+{% load chipcut_tags static %}
+<div x-data="gsTabs('indicadores', ['indicadores', 'leituras'])">
+
+    <!-- Abas padronizadas (mesmo estilo de Lotes) -->
+    <div class="gs-tabs justify-content-end">
+        <button type="button" class="aba-lote"
+                :class="abaAtiva === 'indicadores' ? 'aba-ativa' : 'aba-inativa'"
+                @click="setAba('indicadores')">
+            <i class="bi bi-graph-up-arrow me-1"></i> Indicadores
+        </button>
+        <button type="button" class="aba-lote"
+                :class="abaAtiva === 'leituras' ? 'aba-ativa' : 'aba-inativa'"
+                @click="setAba('leituras')">
+            <i class="bi bi-card-list me-1"></i> Últimas leituras
+            {% if leituras %}<span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">{{ leituras|length }}</span>{% endif %}
+        </button>
+    </div>
+
+    <div class="gs-tab-content">
+        <!-- ====================== ABA: INDICADORES ====================== -->
+        <div x-show="abaAtiva === 'indicadores'">
+            <!-- ROW 1 — KPI cards compactos (SPEC2001) -->
+            <div class="row row-cols-2 row-cols-md-4 g-2 mb-3">
+                {% with k=kpis %}
+                <div class="col">
+                    <div class="card border-0 shadow-sm kpi-compact h-100"><div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-card-checklist fs-4 text-primary"></i>
+                        <div class="overflow-hidden">
+                            <div class="kpi-num">{{ k.lidos.valor }}</div>
+                            <div class="text-muted kpi-lbl">Chips lidos</div>
+                        </div>
+                        {% include "dashboard/_delta.html" with var=k.lidos.var %}
+                    </div></div>
+                </div>
+                <div class="col">
+                    <div class="card border-0 shadow-sm kpi-compact h-100"><div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history fs-4 text-warning"></i>
+                        <div class="overflow-hidden">
+                            <div class="kpi-num">{{ k.em_revisao.valor }}</div>
+                            <div class="text-muted kpi-lbl">Em revisão</div>
+                        </div>
+                        {% include "dashboard/_delta.html" with var=k.em_revisao.var %}
+                    </div></div>
+                </div>
+                <div class="col">
+                    <div class="card border-0 shadow-sm kpi-compact h-100"><div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle fs-4 text-danger"></i>
+                        <div class="overflow-hidden">
+                            <div class="kpi-num">{{ k.erros.valor }}</div>
+                            <div class="text-muted kpi-lbl">Erros de leitura</div>
+                        </div>
+                        {% include "dashboard/_delta.html" with var=k.erros.var %}
+                    </div></div>
+                </div>
+                <div class="col">
+                    <div class="card border-0 shadow-sm kpi-compact h-100"><div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-folder2-open fs-4 text-info"></i>
+                        <div class="overflow-hidden">
+                            <div class="kpi-num">{{ k.lotes_aberto.valor }}</div>
+                            <div class="text-muted kpi-lbl">Lotes em aberto</div>
+                        </div>
+                    </div></div>
+                </div>
+                {% endwith %}
+            </div>
+
+            <!-- ROW 2 — Gráficos compactos (SPEC2002) -->
+            <div class="row g-3">
+                <div class="col-12 col-lg-8">
+                    <div class="card shadow-sm h-100"><div class="card-body">
+                        <h2 class="h6 text-muted mb-2">Leituras por dia</h2>
+                        <div style="height:200px;position:relative"><canvas id="chartLeituras"></canvas></div>
+                    </div></div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card shadow-sm h-100"><div class="card-body">
+                        <h2 class="h6 text-muted mb-2">Distribuição de status</h2>
+                        {% if distrib.total %}
+                        <div style="height:200px;position:relative"><canvas id="chartStatus"></canvas></div>
+                        {% else %}
+                        <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1"></i><p class="mt-2 mb-0">Sem chips ainda.</p></div>
+                        {% endif %}
+                    </div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================== ABA: ÚLTIMAS LEITURAS ====================== -->
+        <div x-show="abaAtiva === 'leituras'" x-cloak>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if leituras %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle chipcut-datatable" style="width:100%"
+                               data-page-length="50" data-order-col="6" data-order-dir="desc">
+                            <thead>
+                                <tr>
+                                    <th>Imagem</th><th>ICCID</th><th>Lote</th><th>Tentativas</th>
+                                    <th>Status</th><th>Operador</th><th>Data/hora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chip in leituras %}
+                                <tr>
+                                    <td>
+                                        {% if chip.imagem_url %}
+                                        <img src="{{ chip.imagem_url }}" class="chip-thumb cursor-pointer" alt="chip"
+                                             style="width:32px;height:32px" loading="lazy"
+                                             onclick="verImagemChip('{{ chip.imagem_url }}')"
+                                             onerror="this.src='{% static 'img/chip-placeholder.png' %}'">
+                                        {% else %}<span class="text-muted">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="iccid cursor-pointer" title="Clique para copiar"
+                                              onclick="chipcutCopy(this, '{{ chip.iccid }}')">{{ chip.iccid|default:"(erro)" }}</span>
+                                    </td>
+                                    <td><a href="{% url 'lotes:review' chip.lote_id %}" class="text-decoration-none">{{ chip.lote.nome }}</a></td>
+                                    <td>
+                                        {% if chip.tentativas > 1 %}<span class="badge text-bg-warning">2ª</span>
+                                        {% else %}<span class="badge text-bg-success">1ª</span>{% endif %}
+                                    </td>
+                                    <td>{% status_badge chip.status_revisao "revisao" %}</td>
+                                    <td>{{ chip.usuario.username|default:"—" }}</td>
+                                    <td>{{ chip.data_leitura|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1"></i><p class="mt-2 mb-0">Nenhuma leitura no período.</p></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{{ serie|json_script:"serie-data" }}
+{{ distrib|json_script:"distrib-data" }}
+<script>
+(function () {
+    function render() {
+        if (!window.Chart) { return setTimeout(render, 50); }
+        var serie = JSON.parse(document.getElementById('serie-data').textContent);
+        var distrib = JSON.parse(document.getElementById('distrib-data').textContent);
+
+        var elLeituras = document.getElementById('chartLeituras');
+        if (elLeituras) {
+            var ex = Chart.getChart(elLeituras); if (ex) { ex.destroy(); }
+            new Chart(elLeituras, {
+                type: 'line',
+                data: { labels: serie.labels, datasets: [{
+                    label: 'Leituras', data: serie.valores,
+                    borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,.15)',
+                    fill: true, tension: 0.3 }] },
+                options: { maintainAspectRatio: false,
+                           plugins: { legend: { display: false } },
+                           scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+        }
+
+        var elStatus = document.getElementById('chartStatus');
+        if (elStatus) {
+            var ex2 = Chart.getChart(elStatus); if (ex2) { ex2.destroy(); }
+            new Chart(elStatus, {
+                type: 'doughnut',
+                data: { labels: distrib.labels, datasets: [{ data: distrib.valores, backgroundColor: distrib.cores }] },
+                options: { maintainAspectRatio: false,
+                           plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } } } }
+            });
+        }
+    }
+    render();
+})();
+</script>
+</div>

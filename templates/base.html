@@ -1,43 +1,218 @@
-{% load static %}
+{% load static chipcut_tags %}
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>{% block title %}ChipCut{% endblock %}</title>
+    <title>{% block title %}GS Cut{% endblock %}</title>
+
+    <!-- Fontes da identidade DevDesk: Archivo (UI) + JetBrains Mono (códigos/números) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 + Icons 1.11 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{% static 'css/app.css' %}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- DataTables (Bootstrap 5) -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- Identidade DevDesk: tokens + primitivas + shell, depois a ponte p/ Bootstrap -->
+    <link href="{% static_v 'devdesk/devdesk.css' %}" rel="stylesheet">
+    <link href="{% static_v 'devdesk/screens.css' %}" rel="stylesheet">
+    <link href="{% static_v 'css/app.css' %}" rel="stylesheet">
+    <link href="{% static_v 'devdesk/bridge.css' %}" rel="stylesheet">
 </head>
-<body class="bg-light">
-    {% if user.is_authenticated %}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard:home' %}">✂️ ChipCut</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navmenu">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:home' %}">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'lotes:list' %}">Lotes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'audit:list' %}">Auditoria</a></li>
-                </ul>
-                <span class="navbar-text text-light me-3">{{ user.get_username }}</span>
-                <form method="post" action="{% url 'logout' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button class="btn btn-outline-light btn-sm" type="submit">Sair</button>
-                </form>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+{% if user.is_authenticated %}
+    <div class="dd-shell" x-data="{ nav: false }">
+        <div class="gs-backdrop" x-show="nav" x-cloak @click="nav = false"></div>
+
+        <!-- Sidebar: fixa no desktop, gaveta no mobile -->
+        <aside class="dd-sidebar" :class="{ 'gs-open': nav }">
+            <div class="dd-logo">
+                <a href="{% url 'dashboard:home' %}" class="text-reset text-decoration-none d-inline-flex align-items-baseline">
+                    <span>GS<span class="gold">Cut</span></span>
+                </a>
+                <span class="cursor"></span>
+                <small>Golden Sat</small>
+            </div>
+
+            {% with app=request.resolver_match.app_name %}
+            <nav class="dd-nav">
+                <div class="dd-nav-label">Navegação</div>
+                <a class="dd-nav-item {% if app == 'dashboard' %}active{% endif %}" href="{% url 'dashboard:home' %}" @click="nav = false">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a class="dd-nav-item {% if app == 'lotes' %}active{% endif %}" href="{% url 'lotes:list' %}" @click="nav = false">
+                    <i class="bi bi-collection"></i> Lotes
+                </a>
+                <a class="dd-nav-item {% if app == 'chips' %}active{% endif %}" href="{% url 'chips:leitura' %}" @click="nav = false">
+                    <i class="bi bi-camera"></i> Leitura
+                </a>
+                <a class="dd-nav-item {% if app == 'audit' %}active{% endif %}" href="{% url 'audit:list' %}" @click="nav = false">
+                    <i class="bi bi-clipboard-data"></i> Logs
+                </a>
+                <div class="dd-nav-label">Sistema</div>
+                <span class="dd-nav-item" style="opacity:.5;cursor:default">
+                    <i class="bi bi-gear"></i> Configurações
+                </span>
+            </nav>
+            {% endwith %}
+
+            <div class="dd-sidebar-foot">
+                <div class="dd-userline">
+                    <span class="dd-avatar av-md" style="background: var(--gold)">{{ user.get_username|slice:":2"|upper }}</span>
+                    <div class="min-vw-0">
+                        <div class="u-nome text-truncate">{{ user.get_username }}</div>
+                        <div class="u-papel">Operador</div>
+                    </div>
+                    <form method="post" action="{% url 'logout' %}" class="ms-auto m-0">
+                        {% csrf_token %}
+                        <button class="sair" type="submit" title="Sair"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <div class="dd-main">
+            <!-- Topbar -->
+            <header class="dd-topbar">
+                <button class="gs-burger" type="button" @click="nav = true" aria-label="Abrir menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h1>{% block page_title %}GS Cut{% endblock %}</h1>
+                {% block page_sub %}{% endblock %}
+                <span class="spacer"></span>
+                {% block topbar_actions %}{% endblock %}
+            </header>
+
+            <div class="dd-scroll">
+                <main class="container-fluid p-3 p-lg-4">
+{% else %}
+    <main>
+{% endif %}
+
+        {% block content %}{% endblock %}
+
+{% if user.is_authenticated %}
+                </main>
             </div>
         </div>
-    </nav>
-    {% endif %}
-
-    <main class="container py-4">
-        {% include "_messages.html" %}
-        {% block content %}{% endblock %}
+    </div>
+{% else %}
     </main>
+{% endif %}
 
+    {% include "_messages.html" %}
+
+    <!-- Loading global para requisições HTMX (SPEC010) -->
+    <div id="loading-indicator" class="htmx-indicator">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Carregando…</span></div>
+    </div>
+
+    <!-- Modal único reutilizado para ampliar a imagem do chip (dashboard, review, leitura) -->
+    <div class="modal fade" id="imgModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <img id="imgModalSrc" src="" alt="Imagem do chip" class="img-fluid w-100 rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery → DataTables → Chart.js → Alpine → HTMX -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <script>
+        // Configuração padrão das DataTables do ChipCut (spec 2.4).
+        window.initChipcutDataTables = function (scope) {
+            (scope || document).querySelectorAll('.chipcut-datatable').forEach(function (el) {
+                if ($.fn.DataTable.isDataTable(el)) return;
+                var pageLen = parseInt(el.getAttribute('data-page-length') || '25', 10);
+                var orderCol = el.getAttribute('data-order-col');
+                var order = orderCol !== null
+                    ? [[parseInt(orderCol, 10), el.getAttribute('data-order-dir') || 'asc']]
+                    : [];
+                $(el).DataTable({
+                    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                    pageLength: pageLen,
+                    order: order,
+                    dom: '<"row align-items-center mb-2"<"col-sm-6"l><"col-sm-6"f>>rtip',
+                });
+            });
+        };
+        // Copia texto para a área de transferência com feedback visual (SPEC011).
+        window.chipcutCopy = function (el, texto) {
+            navigator.clipboard.writeText(texto).then(function () {
+                el.classList.add('text-success');
+                setTimeout(function () { el.classList.remove('text-success'); }, 1000);
+            });
+        };
+        // Abre o modal único com a imagem do chip ampliada.
+        window.verImagemChip = function (src) {
+            document.getElementById('imgModalSrc').src = src;
+            new bootstrap.Modal(document.getElementById('imgModal')).show();
+        };
+        // Componente de abas padronizado (estilo Lotes/spec5): troca de aba sem
+        // reload, persistida na URL (?aba=). Uso: x-data="gsTabs('padrao', ['a','b'])".
+        document.addEventListener('alpine:init', function () {
+            window.Alpine.data('gsTabs', function (padrao, validos) {
+                return {
+                    abaAtiva: padrao,
+                    valid: (validos && validos.length) ? validos : [padrao],
+                    init() {
+                        var p = new URLSearchParams(window.location.search).get('aba');
+                        if (this.valid.indexOf(p) !== -1) this.abaAtiva = p;
+                        window.addEventListener('popstate', () => {
+                            var q = new URLSearchParams(window.location.search).get('aba');
+                            this.abaAtiva = this.valid.indexOf(q) !== -1 ? q : padrao;
+                            this._ajustar();
+                        });
+                    },
+                    setAba(aba) {
+                        this.abaAtiva = aba;
+                        var url = new URL(window.location);
+                        url.searchParams.set('aba', aba);
+                        history.pushState({ aba: aba }, '', url);
+                        this._ajustar();
+                    },
+                    // Recalcula tabelas/gráficos que estavam ocultos ao mudar de aba.
+                    _ajustar() {
+                        this.$nextTick(function () {
+                            if (window.$ && $.fn && $.fn.dataTable) {
+                                try { $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust(); } catch (e) {}
+                            }
+                            if (window.Chart) {
+                                document.querySelectorAll('canvas').forEach(function (c) {
+                                    var ch = window.Chart.getChart(c); if (ch) ch.resize();
+                                });
+                            }
+                        });
+                    },
+                };
+            });
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            window.initChipcutDataTables();
+            // Mensagens do Django renderizadas como toasts (SPEC009).
+            document.querySelectorAll('.chipcut-toast').forEach(function (t) {
+                new bootstrap.Toast(t).show();
+            });
+        });
+        // Re-inicializa tabelas em conteúdo trocado por HTMX.
+        document.body.addEventListener('htmx:afterSwap', function (e) {
+            window.initChipcutDataTables(e.target);
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

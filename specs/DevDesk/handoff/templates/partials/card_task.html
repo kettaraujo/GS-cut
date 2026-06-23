@@ -1,0 +1,67 @@
+{# ============================================================
+   Card do board — 1:1 com o protótipo (classes bd-*).
+   Contexto esperado: task (com anotações da view), user.
+
+   draggable: a view anota task.pode_arrastar conforme o papel
+   (TechLead move qualquer; Dev só as próprias; bloqueada não move).
+   O backend revalida tudo em /mover/ — isto aqui é só conveniência.
+   ============================================================ #}
+<div class="bd-card{% if task.bloqueio %} blocked{% endif %}"
+     {% if task.pode_arrastar %}
+       draggable="true"
+       @dragstart="arrastando = '{{ task.codigo }}'"
+       @dragend="arrastando = null"
+     {% endif %}
+     hx-get="{% url 'task_drawer' task.codigo %}"
+     hx-target="#drawer-slot" hx-swap="innerHTML"
+     style="cursor: pointer">
+
+  <div class="bd-card-top">
+    <span class="dd-code">{{ task.codigo }}</span>
+    {% if task.prioridade %}<span class="dd-prio {{ task.prioridade }}">{{ task.prioridade }}</span>{% endif %}
+    {% if task.rollovers %}
+      <span class="bd-roll" title="Rolou de {{ task.rollovers }} sprint{{ task.rollovers|pluralize }} (RN-07)">
+        {% include "partials/icone.html" with nome="rollover" tam=10 %}{{ task.rollovers }}
+      </span>
+    {% endif %}
+    <span style="flex: 1"></span>
+    <span class="dd-pts lock" title="Pontuação travada na sprint (RN-05)">{{ task.pontos }}</span>
+  </div>
+
+  <div class="bd-card-titulo">{{ task.titulo }}</div>
+
+  {% if task.bloqueio %}
+    <div class="bd-block">
+      {% include "partials/icone.html" with nome="block" tam=11 %}
+      <span>{{ task.bloqueio.motivo }}</span>
+    </div>
+  {% endif %}
+
+  {% if task.epico %}
+    <div style="margin-top: 7px">
+      <span class="dd-epicchip"><span class="edot" style="background: {{ task.epico.cor }}"></span>{{ task.epico.nome }}</span>
+    </div>
+  {% endif %}
+
+  <div class="bd-card-foot">
+    <span class="dd-avatar av-sm" style="background: {{ task.responsavel.perfil.cor }}" title="{{ task.responsavel.get_full_name }}">{{ task.responsavel.perfil.iniciais }}</span>
+    {% if task.colaboradores.exists %}
+      <span class="bd-colab">+<span class="dd-avstack">
+        {% for c in task.colaboradores.all %}
+          <span class="dd-avatar av-sm" style="background: {{ c.perfil.cor }}" title="{{ c.get_full_name }}">{{ c.perfil.iniciais }}</span>
+        {% endfor %}
+      </span></span>
+    {% endif %}
+    {% if task.subtasks.exists %}
+      <span class="bd-sub" title="{{ task.subtasks_feitas }}/{{ task.subtasks.count }} subtasks">
+        <span class="bd-sub-track"><span class="bd-sub-fill" style="width: {{ task.pct_subtasks }}%"></span></span>
+        <span class="mono">{{ task.subtasks_feitas }}/{{ task.subtasks.count }}</span>
+      </span>
+    {% endif %}
+    <span style="flex: 1"></span>
+    {% if task.comentarios.exists %}
+      <span class="bd-meta">{% include "partials/icone.html" with nome="comment" tam=11 %}{{ task.comentarios.count }}</span>
+    {% endif %}
+    <span class="bd-meta mono" title="Dias úteis no estado atual">{{ task.dias_no_estado }}d</span>
+  </div>
+</div>

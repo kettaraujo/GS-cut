@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block titulo %}DevDesk{% endblock %} — Grupo Golden Sat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'devdesk/devdesk.css' %}">
+  <link rel="stylesheet" href="{% static 'devdesk/screens.css' %}">
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+</head>
+{# CSRF global: todo hx-post sai com o token #}
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <div class="dd-shell">
+
+    <aside class="dd-sidebar">
+      <div class="dd-logo">
+        <span>Dev<span class="gold">Desk</span></span><span class="cursor"></span>
+        <small>Golden Sat</small>
+      </div>
+
+      {# Sprint ativa vem de um context processor (devdesk.context.sprint_ativa) #}
+      <div class="dd-sprintbox">
+        <div class="sb-top">
+          <span class="sb-name">Sprint {{ sprint_ativa.numero }}</span>
+          <span class="sb-day">dia {{ sprint_ativa.dia_util }}/{{ sprint_ativa.dias_uteis }}</span>
+        </div>
+        <div class="sb-dates">{{ sprint_ativa.inicio|date:"d/m" }} → {{ sprint_ativa.fim|date:"d/m" }} · {{ sprint_ativa.pontos_comprometidos }} pts</div>
+        <div class="sb-track"><div class="sb-fill" style="width: {% widthratio sprint_ativa.dia_util sprint_ativa.dias_uteis 100 %}%"></div></div>
+      </div>
+
+      <nav class="dd-nav">
+        <div class="dd-nav-label">Fluxo</div>
+        {% url 'board' as url_board %}
+        {# active = compara o name da rota resolvida; boost mantém navegação SPA-like #}
+        {% with rota=request.resolver_match.url_name %}
+        <a class="dd-nav-item {% if rota == 'board' %}active{% endif %}" href="{% url 'board' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="board" %} Board da Sprint
+        </a>
+        <a class="dd-nav-item {% if rota == 'backlog' %}active{% endif %}" href="{% url 'backlog' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="backlog" %} Backlog
+          {% if perms_techlead and triagem_pendentes %}<span class="count">{{ triagem_pendentes }}</span>{% endif %}
+        </a>
+        <a class="dd-nav-item {% if rota == 'planning' %}active{% endif %}" href="{% url 'planning' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="planning" %} Planning
+        </a>
+        <a class="dd-nav-item {% if rota == 'epicos' %}active{% endif %}" href="{% url 'epicos' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="flag" %} Épicos
+        </a>
+        <a class="dd-nav-item {% if rota == 'daily' %}active{% endif %}" href="{% url 'daily' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="daily" %} Daily
+        </a>
+        <a class="dd-nav-item {% if rota == 'metricas' %}active{% endif %}" href="{% url 'metricas' %}" hx-boost="true">
+          {% include "partials/icone.html" with nome="metrics" %} Métricas
+        </a>
+        {% endwith %}
+      </nav>
+
+      <div class="dd-sidebar-foot">
+        <div class="dd-userline">
+          <span class="dd-avatar av-md" style="background: {{ user.perfil.cor }}">{{ user.perfil.iniciais }}</span>
+          <div>
+            <div class="u-nome">{{ user.get_full_name }}</div>
+            <div class="u-papel">{{ user.perfil.get_papel_display }}</div>
+          </div>
+          <form method="post" action="{% url 'logout' %}" style="margin-left: auto">
+            {% csrf_token %}<button class="sair" type="submit">Sair</button>
+          </form>
+        </div>
+      </div>
+    </aside>
+
+    <main class="dd-main" id="conteudo">
+      {% block conteudo %}{% endblock %}
+    </main>
+  </div>
+
+  {# Drawer da task: alvo global. Qualquer card faz
+     hx-get="/tasks/DD-138/drawer/" hx-target="#drawer-slot" hx-swap="innerHTML" #}
+  <div id="drawer-slot"></div>
+
+  {# Toasts: o backend dispara via header HX-Trigger →
+     HttpResponse(..., headers={"HX-Trigger": json.dumps({"dd:toast": {"texto": "...", "tipo": "ok"}})}) #}
+  <div class="dd-toasts" id="toasts"
+       x-data
+       @dd:toast.window="
+         const d = $event.detail;
+         const el = document.createElement('div');
+         el.className = 'dd-toast ' + (d.tipo || 'ok');
+         el.textContent = d.texto;
+         $el.appendChild(el);
+         setTimeout(() => el.remove(), 3600);">
+  </div>
+</body>
+</html>

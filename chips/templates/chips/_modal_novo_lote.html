@@ -1,0 +1,20 @@
+<div class="modal fade" id="modalNovoLote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'chips:leitura_novo_lote' %}">
+                {% csrf_token %}
+                <div class="modal-header py-2">
+                    <h6 class="modal-title">Novo lote</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body py-2">
+                    <input type="text" name="nome" class="form-control" id="novo-lote-nome"
+                           placeholder="Ex.: Caixa A – Junho" required minlength="3" maxlength="100">
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Criar e selecionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

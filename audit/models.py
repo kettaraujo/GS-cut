@@ -9,11 +9,13 @@ class Log(models.Model):
 
     class Acao(models.TextChoices):
         CRIAR_LOTE = "criar_lote", "Criar lote"
+        RENOMEAR_LOTE = "renomear_lote", "Renomear lote"
         LEITURA = "leitura", "Leitura de ICCID"
         CORRECAO = "correcao", "Correção manual"
         REMOVER_CHIP = "remover_chip", "Remover chip"
         APROVAR_LOTE = "aprovar_lote", "Aprovar lote"
         CANCELAR_LOTE = "cancelar_lote", "Cancelar lote"
+        EXCLUIR_LOTE = "exclusao_lote", "Excluir lote"
         EXPORTAR = "exportar", "Exportar lote"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
